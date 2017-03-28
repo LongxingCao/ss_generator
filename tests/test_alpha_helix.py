@@ -23,5 +23,7 @@ def test_transformations():
             axis, xi = ssg.geometry.rotation_matrix_to_axis_and_angle(
                     ssg.alpha_helix.theta_tau_to_rotation_matrix(theta, tau))
 
-            print("theta = {0:.2f}\ttau = {1:.2f}\txi = {2:.2f}\taxis = {3}".format(
-                np.degrees(theta), np.degrees(tau), np.degrees(xi), axis))
+            c_theta, c_tau = ssg.alpha_helix.axis_to_theta_tau(axis)
+
+            print("theta = {0:.2f}\ttau = {1:.2f}\txi = {2:.2f}\taxis = {3}\tc_theta = {4:.2f}\tc_tau = {5:.2f}".format(
+                np.degrees(theta), np.degrees(tau), np.degrees(xi), axis, np.degrees(c_theta), np.degrees(c_tau)))
