@@ -63,7 +63,9 @@ def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
    return ca_list
 
 def generate_alpha_helix_from_screw_axes(screw_axes):
-    '''Generate an alpha helix from a list of screw axes.'''
+    '''Generate an alpha helix from a list of screw axes.
+    Return a list of Ca coordinates.
+    '''
     
     # Get the rotation matrix from the default frame to the first local frame.
     # Note that there are infinite number of possible matrices to do so.
@@ -97,3 +99,34 @@ def generate_alpha_helix_from_screw_axes(screw_axes):
             [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
 
     return [np.dot(M_init, ca) for ca in ca_list]
+
+def generate_super_coil(axis, omega, pitch_angle, length):
+    '''Generate a alpha helix super coil.
+    Return a list of Ca coordinates.
+    '''
+
+    axis = geometry.normalize(axis)
+    M_rot = geometry.rotation_matrix_from_axis_and_angle(axis, omega)
+    
+    # Get the screw axes
+    
+    axis_perpendicular = None
+
+    if np.abs(axis[0]) > 0.01:
+        axis_perpendicular = geometry.normalize(
+                np.array([axis[1], -axis[0], 0]))
+    else:
+        axis_perpendicular = geometry.normalize(
+                np.array([0, axis[2], -axis[1]]))
+
+    screw_seed = np.dot(geometry.rotation_matrix_from_axis_and_angle(
+        axis_perpendicular, pitch_angle), axis)
+
+    screw_axes = [screw_seed]
+
+    for i in range(1, length):
+        screw_axes.append(np.dot(M_rot, screw_axes[i - 1]))
+
+    # Generate the helix
+
+    return generate_alpha_helix_from_screw_axes(screw_axes)

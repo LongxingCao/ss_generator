@@ -42,3 +42,6 @@ def test_generate_alpha_helix():
     ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
     ssg.IO.save_ca_list(ca_list, "z_helix.pdb")
 
+    ca_list = ssg.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-6), np.radians(10), 100)
+    ssg.IO.save_ca_list(ca_list, "super_coil.pdb")
+
