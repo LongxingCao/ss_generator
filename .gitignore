@@ -1,6 +1,6 @@
 __pycache__
 *.swp
 venv
-alpha_helix_generator.egg-info
+ss_generator.egg-info
 .cache
 *.pdb
