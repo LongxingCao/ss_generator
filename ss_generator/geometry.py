@@ -46,3 +46,14 @@ def rotation_matrix_from_axis_and_angle(u, theta):
                      [y * x * (1 - c) + z * s, c + y**2 * (1 - c), y * z * (1 - c) - x * s ],
                      [z * x * (1 - c) - y * s, z * y * (1 - c) + x * s, c + z**2 * (1 - c) ]])
 
+def cartesian_coord_from_internal_coord(p1, p2, p3, d, theta, tau):
+    '''Calculate the cartesian coordinates of an atom from 
+    three internal coordinates and three reference points.
+    '''
+    axis1 = np.cross(p1 - p2, p3 - p2)
+    axis2 = p3 - p2
+
+    M1 = rotation_matrix_from_axis_and_angle(axis1, theta - np.pi)
+    M2 = rotation_matrix_from_axis_and_angle(axis2, tau)
+
+    return p3 + d * np.dot(M2, np.dot(M1, normalize(p3 - p2)))
