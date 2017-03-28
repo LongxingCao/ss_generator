@@ -36,5 +36,9 @@ def test_generate_alpha_helix():
     taus = 18 * [np.radians(49.5)]
 
     ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
-
     ssg.IO.save_ca_list(ca_list, "straight_helix.pdb")
+
+    screw_axes = [np.array([0, 0, 1])] * 20
+    ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
+    ssg.IO.save_ca_list(ca_list, "z_helix.pdb")
+

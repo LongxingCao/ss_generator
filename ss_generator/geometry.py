@@ -57,3 +57,23 @@ def cartesian_coord_from_internal_coord(p1, p2, p3, d, theta, tau):
     M2 = rotation_matrix_from_axis_and_angle(axis2, tau)
 
     return p3 + d * np.dot(M2, np.dot(M1, normalize(p3 - p2)))
+
+def rotation_matrix_to_superimpose_two_vectors(v1, v2, theta=0):
+    '''Get a rotation matrix that superimpose v1 to v2.
+    Because there are infinite number of matrices that can do
+    so, change the value of theta to get different results.
+    '''
+    v1 = normalize(v1)
+    v2 = normalize(v2)
+
+    axis = np.cross(v1, v2)
+    sin_ang = np.linalg.norm(axis)
+    cos_ang = np.dot(v1, v2)
+
+    if np.linalg.norm(axis) < 0.01:
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    else:
+        M = rotation_matrix_from_axis_and_angle(axis, np.arctan2(sin_ang, cos_ang))
+
+    return np.dot(rotation_matrix_from_axis_and_angle(v2, theta), M)
