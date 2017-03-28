@@ -3,13 +3,13 @@
 from distutils.core import setup
 
 setup(
-    name='alpha_helix_generator',
+    name='ss_generator',
     version='0.0.0',
     author='Xingjie Pan',
     author_email='xingjiepan@gmail.com',
-    url='https://github.com/xingjiepan/alpha_helix_generator',
+    url='https://github.com/xingjiepan/ss_generator',
     packages=[
-        'alpha_helix_generator',
+        'ss_generator',
     ],
     install_requires=[
         'numpy',
@@ -19,7 +19,7 @@ setup(
         'console_scripts': [
         ],
     },
-    description='alpha_helix_generator generates alpha helix backbones from a set of geometric parameters.',
+    description='ss_generator generates protein secondary structure backbones from a set of geometric parameters.',
     long_description=open('README.rst').read(),
     classifiers=[
         'Programming Language :: Python :: 3',
