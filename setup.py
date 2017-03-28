@@ -9,7 +9,7 @@ setup(
     author_email='xingjiepan@gmail.com',
     url='https://github.com/xingjiepan/alpha_helix_generator',
     packages=[
-        'ProteinFeatureAnalyzer',
+        'alpha_helix_generator',
     ],
     install_requires=[
         'numpy',
