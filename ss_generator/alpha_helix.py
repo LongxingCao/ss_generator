@@ -81,7 +81,7 @@ def generate_alpha_helix_from_screw_axes(screw_axes):
     thetas = [THETA_MEAN] * 2
     taus = [TAU_MEAN]
 
-    M_rot = M_init
+    M_rot = np.dot(M_init, theta_tau_to_rotation_matrix(THETA_MEAN, TAU_MEAN))
 
     for i in range(1, len(screw_axes)):
         theta, tau = axis_to_theta_tau(np.dot(np.transpose(M_rot), screw_axes[i]))
@@ -93,6 +93,7 @@ def generate_alpha_helix_from_screw_axes(screw_axes):
         taus.append(tau)
 
         M_local = theta_tau_to_rotation_matrix(theta, tau)
+        
         M_rot = np.dot(M_rot, M_local)
 
     ca_list = generate_alpha_helix_from_internal_coordinates(
