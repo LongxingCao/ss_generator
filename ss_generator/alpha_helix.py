@@ -38,6 +38,36 @@ def check_theta_tau(theta, tau):
 
     return True
 
+def theta_tau_for_nexus(axis, axis_new):
+    '''Given an axis, find a pair of (theta, tau) such that
+    after rotating the coordinate frame by M(theta, tau), the
+    coordinates of the axis in the new frame is axis_new.
+    '''
+    vx1 = axis[0]
+    vy1 = axis[1]
+    vz1 = axis[2]
+    vx2 = axis_new[0]
+    vy2 = axis_new[1]
+    vz2 = axis_new[2]
+
+    # Calculate the tau angle
+
+    t = 1 / (vz2 + vz1) * (vx1 + np.sign(vx1) * np.sqrt(vx1 ** 2 - (vz2 ** 2 - vz1 ** 2)))
+
+    tau = 2 * np.arctan(t)
+
+    # Calculate the theta angle
+
+    s = np.sin(tau)
+    c = np.cos(tau)
+
+    q = 1 / (vx2 + s * vz1 - c * vx1) * (-vy1 \
+            - np.sign(vy1) * np.sqrt(vy1 ** 2 - (vx2 ** 2 - (s * vz1 - c * vx1) ** 2)))
+
+    theta = 2 * np.arctan(q)
+
+    return theta, tau
+
 def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
    '''Generate an alpha helix from a set of internal coordinates.
    Return a list of Ca coordinates.
@@ -145,10 +175,10 @@ def generate_super_coil(axis, omega, pitch_angle, length):
     thetas = []
     taus = []
     
-    repeat_length = 21
+    repeat_length = 7
 
     theta_repeat, tau_repeat, M_rot = \
-        get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes[:repeat_length])
+            get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes[:repeat_length])
 
     i = 0
     while i < len(screw_axes):
@@ -165,4 +195,7 @@ def generate_super_coil(axis, omega, pitch_angle, length):
 
     # Generate the helix
 
-    return generate_alpha_helix_from_screw_axes(screw_axes)
+    ca_list = generate_alpha_helix_from_internal_coordinates(
+                [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
+
+    return [np.dot(M_rot, ca) for ca in ca_list]
