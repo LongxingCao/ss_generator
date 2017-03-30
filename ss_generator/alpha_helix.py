@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from . import geometry
 
@@ -93,11 +92,12 @@ def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
 
    return ca_list
 
-def generate_alpha_helix_from_screw_axes(screw_axes):
+def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False):
     '''Generate an alpha helix from a list of screw axes.
     Return a list of Ca coordinates.
     '''
-    thetas, taus, M_rot = get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes) 
+    thetas, taus, M_rot = get_theta_tau_and_rotation_matrix_from_screw_axes(
+            screw_axes, relieve_strain=relieve_strain) 
 
     ca_list = generate_alpha_helix_from_internal_coordinates(
             [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
@@ -105,7 +105,7 @@ def generate_alpha_helix_from_screw_axes(screw_axes):
     return [np.dot(M_rot, ca) for ca in ca_list]
 
 
-def get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes):
+def get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes, relieve_strain=False):
     '''Get internal coordinates theta and tau from a list
     of screw axes.
     '''
@@ -127,8 +127,17 @@ def get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes):
 
     for i in range(1, len(screw_axes)):
         local_axis = np.dot(np.transpose(M_rot), screw_axes[i])
-        
+       
         theta, tau = axis_to_theta_tau(local_axis)
+        
+        # Relieve the strain
+
+        if relieve_strain and i % 7 == 0 and i + 1 < len(screw_axes):
+            next_axis = np.dot(np.transpose(M_rot), screw_axes[i + 1])
+            ideal_axis = geometry.rotation_matrix_to_axis_and_angle(
+                    theta_tau_to_rotation_matrix(THETA_MEAN, TAU_MEAN))[0]
+
+            theta, tau = theta_tau_for_nexus(next_axis, ideal_axis)
 
         if not check_theta_tau(theta, tau):
             raise Exception("The value of theta or tau beyond the limits.")
@@ -168,34 +177,6 @@ def generate_super_coil(axis, omega, pitch_angle, length):
     for i in range(1, length):
         screw_axes.append(np.dot(M_rot, screw_axes[i - 1]))
 
-    # Get internal coordinate
-    # Because strain accumulates as the coil grows, only
-    # calculate the internal coordinates of the first repeat_length
-    # residues, and create the coil by repreating
-    thetas = []
-    taus = []
-    
-    repeat_length = 7
-
-    theta_repeat, tau_repeat, M_rot = \
-            get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes[:repeat_length])
-
-    i = 0
-    while i < len(screw_axes):
-        if i + repeat_length >= len(screw_axes):
-            thetas += theta_repeat
-        else:
-            thetas += theta_repeat[:-1]
-        
-        taus += tau_repeat
-        i += repeat_length
-
-    thetas = thetas[:len(screw_axes) + 1]
-    taus = taus[:len(screw_axes)]
-
     # Generate the helix
 
-    ca_list = generate_alpha_helix_from_internal_coordinates(
-                [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
-
-    return [np.dot(M_rot, ca) for ca in ca_list]
+    return generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=True) 
