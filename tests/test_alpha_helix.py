@@ -31,17 +31,28 @@ def test_transformations():
 def test_generate_alpha_helix():
     print("test generating alpha helices.")
 
-    ds = 20 * [3.81]
-    thetas = 19 * [np.radians(91.8)]
-    taus = 18 * [np.radians(49.5)]
+    ds = 100 * [3.81]
+    thetas = 99 * [np.radians(91.8)]
+    taus = 98 * [np.radians(49.5)]
 
-    ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
-    ssg.IO.save_ca_list(ca_list, "straight_helix.pdb")
+    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    #ssg.IO.save_ca_list(ca_list, "straight_helix.pdb")
 
-    screw_axes = [np.array([0, 0, 1])] * 20
-    ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
-    ssg.IO.save_ca_list(ca_list, "z_helix.pdb")
+    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(
+    #        ds, thetas + np.radians(3.35) * np.random.uniform(-1, 1, 99), taus + np.radians(7.1) * np.random.uniform(-1, 1, 98))
+    #ssg.IO.save_ca_list(ca_list, "random_helix.pdb")
 
-    ca_list = ssg.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-4), np.radians(10), 100)
+    #screw_axes = [np.array([0, 0, 1])] * 20
+    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
+    #ssg.IO.save_ca_list(ca_list, "z_helix.pdb")
+
+    #screw_axes = [np.array([0, 0, 1])]
+    #for i in range(100):
+    #    screw_axes.append(ssg.geometry.normalize(screw_axes[i] + 0.001 * np.array([np.random.normal(), np.random.normal(), np.random.normal()])))
+
+    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
+    #ssg.IO.save_ca_list(ca_list, "random_screws.pdb")
+    
+    ca_list = ssg.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-3.6), np.radians(12), 105)
     ssg.IO.save_ca_list(ca_list, "super_coil.pdb")
 
