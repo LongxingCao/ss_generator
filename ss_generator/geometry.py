@@ -7,6 +7,27 @@ def normalize(v):
         return v
     return v / np.linalg.norm(v)
 
+def angle(v1, v2):
+    '''Return the angle between two vectors in ratian.'''
+    return np.arccos(np.dot(normalize(v1), normalize(v2)))
+
+def dihedral(p1, p2, p3, p4):
+    '''Return the dihedral defined by 4 points in 
+    range [-pi, pi].
+    '''
+    v1 = normalize(p2 - p1)
+    v2 = normalize(p3 - p2)
+    v3 = normalize(p4 - p3)
+
+    n1 = normalize(np.cross(v1, v2))
+    n2 = normalize(np.cross(v2, v3))
+
+    c = np.dot(n1, n2)
+    s = np.dot(v2, np.cross(n1, n2))
+
+    return np.arctan2(s, c) 
+
+
 def create_frame_from_three_points(p1, p2, p3):
     '''Create a left-handed coordinate frame from 3 points. 
     The p2 is the origin; the y-axis is the vector from p2 to p3; 

@@ -67,6 +67,28 @@ def theta_tau_for_nexus(axis, axis_new):
 
     return theta, tau
 
+def get_internal_coordinates_from_ca_list(ca_list):
+    '''Get the list of ds, thetas and taus from a ca list.'''
+    ds = []
+    thetas = []
+    taus = []
+
+    for i in range(len(ca_list) - 1):
+        ds.append(np.linalg.norm(ca_list[i + 1] - ca_list[i]))
+
+    for i in range(1, len(ca_list) - 1):
+        thetas.append(geometry.angle(ca_list[i - 1] - ca_list[i],
+            ca_list[i + 1] - ca_list[i]))
+
+    for i in range(1, len(ca_list) - 2):
+        taus.append(geometry.dihedral(ca_list[i - 1], ca_list[i],
+            ca_list[i + 1], ca_list[i + 2]))
+
+    return ds, thetas, taus
+
+
+### Functions to generate a new helix
+
 def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
    '''Generate an alpha helix from a set of internal coordinates.
    Return a list of Ca coordinates.
@@ -179,4 +201,34 @@ def generate_super_coil(axis, omega, pitch_angle, length):
 
     # Generate the helix
 
-    return generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=True) 
+    return generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=True)
+
+### Functions to perturb an existing helix
+
+def randomize_a_helix(ca_list, ratio):
+    '''Randomize internal coordinates of a helix. Only int(ratio * len(ca_list))
+    residues are perturbed.
+    '''
+    ds, thetas, taus = get_internal_coordinates_from_ca_list(ca_list)
+
+    num_to_perturb = int(ratio * len(ca_list))
+    res_to_perturb = np.random.permutation(len(ca_list) - 3)[:num_to_perturb]
+
+    for i in res_to_perturb:
+        thetas[i] = np.random.normal(THETA_MEAN, THETA_STD)
+        taus[i] = np.random.normal(TAU_MEAN, TAU_STD)
+
+    perturbed_ca_list = generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+
+    # Rotate and translate the perturbed helix, such that the first frame
+    # coincide with its original frame
+
+    M = np.transpose(geometry.create_frame_from_three_points(
+        ca_list[0], ca_list[1], ca_list[2]))
+    t = ca_list[1] - perturbed_ca_list[1]
+
+    for i in range(len(perturbed_ca_list)):
+        perturbed_ca_list[i] = np.dot(M, 
+                perturbed_ca_list[i]) + t
+
+    return perturbed_ca_list

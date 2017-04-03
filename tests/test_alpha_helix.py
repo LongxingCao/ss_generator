@@ -45,9 +45,9 @@ def test_build_nexus():
 def test_generate_alpha_helix():
     print("test generating alpha helices.")
 
-    ds = 100 * [3.81]
-    thetas = 99 * [np.radians(91.8)]
-    taus = 98 * [np.radians(49.5)]
+    #ds = 100 * [3.81]
+    #thetas = 99 * [np.radians(91.8)]
+    #taus = 98 * [np.radians(49.5)]
 
     #ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
     #ssg.IO.save_ca_list(ca_list, "straight_helix.pdb")
@@ -70,3 +70,18 @@ def test_generate_alpha_helix():
     ca_list = ssg.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-3.6), np.radians(12), 1000)
     ssg.IO.save_ca_list(ca_list, "super_coil.pdb")
 
+def test_perturb_alpha_helix():
+    print("test perturb alpha helices.")
+    
+    ds = 100 * [3.81]
+    thetas = 99 * [np.radians(91.8)]
+    taus = 98 * [np.radians(49.5)]
+
+    ca_list_before = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    for ca in ca_list_before:
+        ca += np.array([10, 0, 0])
+    
+    ssg.IO.save_ca_list(ca_list_before, "helix_before_perturb.pdb")
+   
+    random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
+    ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
