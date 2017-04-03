@@ -27,12 +27,12 @@ def axis_to_theta_tau(axis):
 
 def check_theta_tau(theta, tau):
     '''Check that if the theta and tau are within the
-    1.5 * STD respectively.
+    3 * STD respectively.
     '''
-    if theta > THETA_MEAN + 1.5 * THETA_STD or theta < THETA_MEAN - 1.5 * THETA_STD:
+    if theta > THETA_MEAN + 3 * THETA_STD or theta < THETA_MEAN - 3 * THETA_STD:
         return False
 
-    if tau > TAU_MEAN + 1.5 * TAU_STD or tau < TAU_MEAN - 1.5 * TAU_STD:
+    if tau > TAU_MEAN + 3 * TAU_STD or tau < TAU_MEAN - 3 * TAU_STD:
         return False
 
     return True
@@ -114,12 +114,12 @@ def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
 
    return ca_list
 
-def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False):
+def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False, M_init=None):
     '''Generate an alpha helix from a list of screw axes.
     Return a list of Ca coordinates.
     '''
     thetas, taus, M_rot = get_theta_tau_and_rotation_matrix_from_screw_axes(
-            screw_axes, relieve_strain=relieve_strain) 
+            screw_axes, relieve_strain=relieve_strain, M_init=M_init) 
 
     ca_list = generate_alpha_helix_from_internal_coordinates(
             [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
@@ -127,18 +127,20 @@ def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False):
     return [np.dot(M_rot, ca) for ca in ca_list]
 
 
-def get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes, relieve_strain=False):
+def get_theta_tau_and_rotation_matrix_from_screw_axes(screw_axes, relieve_strain=False, M_init=None):
     '''Get internal coordinates theta and tau from a list
     of screw axes.
     '''
     # Get the rotation matrix from the default frame to the first local frame.
     # Note that there are infinite number of possible matrices to do so.
 
-    axis_default = geometry.rotation_matrix_to_axis_and_angle(
-            theta_tau_to_rotation_matrix(THETA_MEAN, TAU_MEAN))[0]
+    if M_init is None:
 
-    M_init = geometry.rotation_matrix_to_superimpose_two_vectors(
-            axis_default, screw_axes[0], theta=np.random.uniform(-np.pi, np.pi))
+        axis_default = geometry.rotation_matrix_to_axis_and_angle(
+                theta_tau_to_rotation_matrix(THETA_MEAN, TAU_MEAN))[0]
+
+        M_init = geometry.rotation_matrix_to_superimpose_two_vectors(
+                axis_default, screw_axes[0], theta=np.random.uniform(-np.pi, np.pi))
 
     # Get the internal coordinates
 
@@ -232,3 +234,37 @@ def randomize_a_helix(ca_list, ratio):
                 perturbed_ca_list[i]) + t
 
     return perturbed_ca_list
+
+def shift_helix_phase(ca_list, phase_shift):
+    '''Shift the phase of a helix without changing 
+    it's direction.
+    '''
+    # Get the screw axes
+    
+    screw_axes = []
+    
+    for i in range(1, len(ca_list) - 2):
+        M1 = geometry.create_frame_from_three_points(
+                ca_list[i - 1], ca_list[i], ca_list[i + 1])
+        M2 = geometry.create_frame_from_three_points(
+                ca_list[i], ca_list[i + 1], ca_list[i + 2])
+
+        screw_axes.append(geometry.rotation_matrix_to_axis_and_angle(
+            np.dot(np.transpose(M2), M1))[0])
+
+    # Get the initial rotation matrix for helix generation
+
+    M1 = geometry.create_frame_from_three_points(
+            ca_list[0], ca_list[1], ca_list[2])
+    M_init = np.dot(geometry.rotation_matrix_from_axis_and_angle(
+        screw_axes[0], phase_shift), np.transpose(M1))
+
+    # Calculate the Ca coordinates
+
+    shifted_ca_list = generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=True, M_init=M_init)
+
+    t = np.mean(ca_list, axis=0) - np.mean(shifted_ca_list, axis=0)
+    for i in range(len(shifted_ca_list)):
+        shifted_ca_list[i] = shifted_ca_list[i] + t
+
+    return shifted_ca_list
