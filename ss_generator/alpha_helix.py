@@ -217,8 +217,12 @@ def randomize_a_helix(ca_list, ratio):
     res_to_perturb = np.random.permutation(len(ca_list) - 3)[:num_to_perturb]
 
     for i in res_to_perturb:
-        thetas[i] = np.random.normal(THETA_MEAN, THETA_STD)
-        taus[i] = np.random.normal(TAU_MEAN, TAU_STD)
+        theta = np.random.normal(THETA_MEAN, THETA_STD)
+        tau = np.random.normal(TAU_MEAN, TAU_STD)
+        
+        if check_theta_tau(theta, tau):
+          thetas[i] = theta
+          taus[i] = tau
 
     perturbed_ca_list = generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
 
@@ -227,7 +231,7 @@ def randomize_a_helix(ca_list, ratio):
 
     M = np.transpose(geometry.create_frame_from_three_points(
         ca_list[0], ca_list[1], ca_list[2]))
-    t = ca_list[1] - perturbed_ca_list[1]
+    t = np.mean(ca_list, axis=0) - np.mean(perturbed_ca_list, axis=0)
 
     for i in range(len(perturbed_ca_list)):
         perturbed_ca_list[i] = np.dot(M, 
@@ -268,3 +272,101 @@ def shift_helix_phase(ca_list, phase_shift):
         shifted_ca_list[i] = shifted_ca_list[i] + t
 
     return shifted_ca_list
+
+def twist_helix(ca_list, axis, pitch_angle, omega, ratio):
+    '''Twist a helix, making it closer to a super coil who is defined
+    by axis, pitch_angle and omega. int(ratio * len(ca_list)) minimum
+    twist units (each with 6 residues) are perturbed.
+    '''
+    ds, thetas, taus = get_internal_coordinates_from_ca_list(ca_list)
+
+    M_init = geometry.create_frame_from_three_points(
+            ca_list[0], ca_list[1], ca_list[2])
+
+    # Get residues to perturb
+
+    num_to_perturb = int(ratio * len(ca_list))
+    res_to_perturb = sorted(np.random.permutation(len(taus) - 2)[:num_to_perturb])
+
+    # Get the perturbed internal coordinates
+
+    for i in range(len(taus)):
+        if i in res_to_perturb:
+            new_thetas, new_taus = twist_minimum_unit(thetas[i + 1: i + 4],
+                    taus[i: i + 3], M_init, axis, pitch_angle, omega)
+            
+            if new_thetas is not None:
+                for j in range(3):
+                    thetas[i + 1 + j] = new_thetas[j]
+                    taus[i + j] = new_taus[j]
+
+        M_init = np.dot(M_init, theta_tau_to_rotation_matrix(thetas[i + 1], taus[i]))
+
+    # Get new ca coordinates
+
+    new_ca_list = generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    
+    M_rot = geometry.create_frame_from_three_points(
+            ca_list[0], ca_list[1], ca_list[2])
+    t = np.mean(ca_list, axis=0) - np.mean(new_ca_list, axis=0)
+
+    for i in range(len(new_ca_list)):
+        new_ca_list[i] = np.dot(M_rot, new_ca_list[i]) + t
+
+    return new_ca_list
+
+def twist_minimum_unit(thetas, taus, M_init, axis, pitch_angle, omega):
+    '''Twist a minimum twist unit.
+    Return new values for thetas and taus. Return None if the twist failed.
+    '''
+
+    if len(thetas) != 3 or len(taus) != 3:
+        raise Exception("A minimum twist unit must have 3 angles and 3 torsions!")
+
+    screw_axes = []
+
+    # Get the new value of the first axis
+
+    axis1_local = geometry.rotation_matrix_to_axis_and_angle(
+            theta_tau_to_rotation_matrix(thetas[0], taus[0]))[0]
+
+    axis1_global = np.dot(M_init, axis1_local)
+
+    angle_to_rotate = pitch_angle - geometry.angle(axis, axis1_global)
+    rotate_axis = geometry.normalize(np.cross(axis, axis1_global))
+
+    for i in range(1, 5):
+        M_rot = geometry.rotation_matrix_from_axis_and_angle(
+                rotate_axis, angle_to_rotate)
+
+        new_axis_global = np.dot(M_rot, axis1_global)
+        new_axis_local = np.dot(np.transpose(M_init), new_axis_global)
+
+        theta, tau = axis_to_theta_tau(new_axis_local)
+        
+        if check_theta_tau(theta, tau):
+            screw_axes.append(new_axis_global)
+            break
+
+        angle_to_rotate /= 2
+
+    if len(screw_axes) == 0: return None, None
+
+    # Get the new screw axes
+
+    M_rot = geometry.rotation_matrix_from_axis_and_angle(axis, omega)
+
+    for i in range(1, 3):
+        screw_axes.append(np.dot(M_rot, screw_axes[i - 1]))
+
+    # Get the internal coordinates
+
+    try:
+        thetas, taus, M = get_theta_tau_and_rotation_matrix_from_screw_axes(
+                screw_axes, M_init=M_init)
+    except:
+        return None, None
+
+    return thetas[1:], taus
+
+
