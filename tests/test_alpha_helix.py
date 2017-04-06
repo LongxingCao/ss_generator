@@ -49,10 +49,10 @@ def test_generate_alpha_helix():
     #thetas = 99 * [np.radians(91.8)]
     #taus = 98 * [np.radians(49.5)]
 
-    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    #ca_list = ssg.basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
     #ssg.IO.save_ca_list(ca_list, "straight_helix.pdb")
 
-    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(
+    #ca_list = ssg.basic.generate_segment_from_internal_coordinates(
     #        ds, thetas + np.radians(3.35) * np.random.uniform(-1, 1, 99), taus + np.radians(7.1) * np.random.uniform(-1, 1, 98))
     #ssg.IO.save_ca_list(ca_list, "random_helix.pdb")
 
@@ -77,7 +77,7 @@ def test_perturb_alpha_helix():
     thetas = 99 * [np.radians(91.8)]
     taus = 98 * [np.radians(49.5)]
 
-    ca_list_before = ssg.alpha_helix.generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    ca_list_before = ssg.basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
     for ca in ca_list_before:
         ca += np.array([10, 0, 0])
     

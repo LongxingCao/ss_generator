@@ -1,6 +1,7 @@
 import numpy as np
 
 from . import geometry
+from . import basic
 
 D_MEAN = 3.81
 D_STD = 0.02
@@ -67,52 +68,8 @@ def theta_tau_for_nexus(axis, axis_new):
 
     return theta, tau
 
-def get_internal_coordinates_from_ca_list(ca_list):
-    '''Get the list of ds, thetas and taus from a ca list.'''
-    ds = []
-    thetas = []
-    taus = []
-
-    for i in range(len(ca_list) - 1):
-        ds.append(np.linalg.norm(ca_list[i + 1] - ca_list[i]))
-
-    for i in range(1, len(ca_list) - 1):
-        thetas.append(geometry.angle(ca_list[i - 1] - ca_list[i],
-            ca_list[i + 1] - ca_list[i]))
-
-    for i in range(1, len(ca_list) - 2):
-        taus.append(geometry.dihedral(ca_list[i - 1], ca_list[i],
-            ca_list[i + 1], ca_list[i + 2]))
-
-    return ds, thetas, taus
-
 
 ### Functions to generate a new helix
-
-def generate_alpha_helix_from_internal_coordinates(ds, thetas, taus):
-   '''Generate an alpha helix from a set of internal coordinates.
-   Return a list of Ca coordinates.
-   '''
-   # Make sure that the sizes of internal coordinates are correct
-
-   if len(ds) < 3 or len(thetas) < 2 or len(taus) < 1 \
-      or len(ds) != len(thetas) + 1 or len(ds) != len(taus) + 2:
-          raise Exception("Incompatible sizes of internal coordinates.")
-
-   # Make the first three Ca atoms
-
-   ca_list = []
-   ca_list.append(ds[0] * np.array([np.sin(thetas[0]),np.cos(thetas[0]), 0]))
-   ca_list.append(np.array([0, 0, 0]))
-   ca_list.append(np.array([0, ds[1], 0]))
-
-   # Make the rest of Ca atoms
-
-   for i in range(len(taus)):
-      ca_list.append(geometry.cartesian_coord_from_internal_coord(
-          ca_list[i], ca_list[i + 1], ca_list[i + 2], ds[i + 2], thetas[i + 1], taus[i]))
-
-   return ca_list
 
 def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False, M_init=None):
     '''Generate an alpha helix from a list of screw axes.
@@ -121,7 +78,7 @@ def generate_alpha_helix_from_screw_axes(screw_axes, relieve_strain=False, M_ini
     thetas, taus, M_rot = get_theta_tau_and_rotation_matrix_from_screw_axes(
             screw_axes, relieve_strain=relieve_strain, M_init=M_init) 
 
-    ca_list = generate_alpha_helix_from_internal_coordinates(
+    ca_list = basic.generate_segment_from_internal_coordinates(
             [D_MEAN] * (len(screw_axes) + 2), thetas, taus)
 
     return [np.dot(M_rot, ca) for ca in ca_list]
@@ -211,7 +168,7 @@ def randomize_a_helix(ca_list, ratio):
     '''Randomize internal coordinates of a helix. Only int(ratio * len(ca_list))
     residues are perturbed.
     '''
-    ds, thetas, taus = get_internal_coordinates_from_ca_list(ca_list)
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(ca_list)
 
     num_to_perturb = int(ratio * len(ca_list))
     res_to_perturb = np.random.permutation(len(ca_list) - 3)[:num_to_perturb]
@@ -224,7 +181,7 @@ def randomize_a_helix(ca_list, ratio):
           thetas[i] = theta
           taus[i] = tau
 
-    perturbed_ca_list = generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    perturbed_ca_list = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
 
     # Rotate and translate the perturbed helix, such that the first frame
     # coincide with its original frame
@@ -278,7 +235,7 @@ def twist_helix(ca_list, axis, pitch_angle, omega, ratio):
     by axis, pitch_angle and omega. int(ratio * len(ca_list)) minimum
     twist units (each with 6 residues) are perturbed.
     '''
-    ds, thetas, taus = get_internal_coordinates_from_ca_list(ca_list)
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(ca_list)
 
     M_init = geometry.create_frame_from_three_points(
             ca_list[0], ca_list[1], ca_list[2])
@@ -304,7 +261,7 @@ def twist_helix(ca_list, axis, pitch_angle, omega, ratio):
 
     # Get new ca coordinates
 
-    new_ca_list = generate_alpha_helix_from_internal_coordinates(ds, thetas, taus)
+    new_ca_list = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
     
     M_rot = geometry.create_frame_from_three_points(
             ca_list[0], ca_list[1], ca_list[2])
