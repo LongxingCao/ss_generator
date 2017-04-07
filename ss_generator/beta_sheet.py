@@ -5,6 +5,7 @@ from . import basic
 
 
 D_MEAN = 3.80
+PARA_BP_LEN_PLUS = 4.84
 
 def get_internal_coordinates_for_ideal_sheet(R, alpha, delta):
     '''Get 4 internal coordinates for an ideal beta sheet.
@@ -98,12 +99,42 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, le
     # Generate one strand
 
     strand = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
-   
+
+    # Get the outer cylinder radius
+
+    R_out = R + D_MEAN * np.cos(theta1 / 2)
+
     # Get the screw axis
 
-    #x = geometry.normalize(strand[1] - (strand[2] + strand[0]) / 2)
-    #rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
-    #z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
+    x = geometry.normalize(strand[1] - (strand[2] + strand[0]) / 2)
+    rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
+    z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
+    u = strand[1] - R_out * x
 
-    return strand ###DEBUG
+    # Get the pitch
+
+    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
+
+    # Get the screw angle
+
+    screw_angle = -PARA_BP_LEN_PLUS * np.sin(alpha) / R_out 
+
+    # Get the screw rotation and translation
+
+    M, t = geometry.get_screw(-z, screw_angle, pitch, u)
+
+    # If the alpha is zero, do a pure translation
+
+    if np.absolute(alpha) < 0.001:
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        t = -PARA_BP_LEN_PLUS * z
+
+    # Generate strands
+
+    sheet = [strand]
+    
+    for i in range(1, num_strands):
+        sheet.append([np.dot(M, ca) + t for ca in sheet[i - 1]])
+
+    return sheet
 

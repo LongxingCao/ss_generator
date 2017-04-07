@@ -22,4 +22,5 @@ def save_ca_list(ca_list, pdb_name):
                         + "                       C  \n")
                 index += 1
 
+            index += 1
             f.write("TER\n")

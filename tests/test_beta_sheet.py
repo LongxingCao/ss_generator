@@ -10,9 +10,9 @@ def test_build_beta_sheet():
     print("test build beta sheet.")
 
     theta1 = np.radians(123.9 - 10)
-    tau1 = np.radians(165)
+    #tau1 = np.radians(165)
     #tau1 = np.radians(180)
-    #tau1 = np.radians(195.8)
+    tau1 = np.radians(195.8)
     theta2 = np.radians(123.9 + 10)
 
     R, alpha, delta = ssg.beta_sheet.get_ideal_parameters_from_three_internal_coordinates(theta1, tau1, theta2)
@@ -26,5 +26,5 @@ def test_build_beta_sheet():
     print("tau2_calc = {0:.2f}".format(np.degrees(tau2_calc)))
 
     
-    ca_list = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, 20, 5)
+    ca_list = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, 20, 8)
     ssg.IO.save_ca_list(ca_list, "ideal_sheet.pdb")

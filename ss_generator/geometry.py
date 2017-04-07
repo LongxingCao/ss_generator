@@ -103,9 +103,16 @@ def get_screw(axis, theta, pitch, u):
     '''Get the ration matrix and translate vector of a screw
     transformation from the direction of the screw axis, the 
     screw angle theta, the pitch and a point u on the screw axis.
+    If theta > 0, it is a right handed screw and if theta < 0, it is 
+    a left handed screw.
     '''
     axis = normalize(axis)
     R = rotation_matrix_from_axis_and_angle(axis, theta)
-    t = theta / (2 * np.pi) * pitch * axis + u - np.dot(R, u)
+    t = np.absolute(theta) / (2 * np.pi) * pitch * axis + u - np.dot(R, u)
 
     return R, t
+
+def pitch_angle_to_pitch(pitch_angle, R):
+    '''Get the pitch of a screw from its pitch_angle and radius.'''
+    return  2 * np.pi * R / np.tan(pitch_angle)
+
