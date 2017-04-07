@@ -18,7 +18,12 @@ def get_internal_coordinates_for_ideal_sheet(R, alpha, delta):
     The outputs are theta1, tau1, theta2, tau2.
     '''
 
-    theta1 = 2 * np.arcsin(R * np.sin(delta / 2) / (D_MEAN * np.absolute(np.cos(alpha))))
+    # Adjust the sign of delta for left handed strand
+
+    if alpha > np.pi / 2:
+        delta = -delta
+
+    theta1 = 2 * np.arcsin(R * np.absolute(np.sin(delta / 2)) / (D_MEAN * np.absolute(np.cos(alpha))))
     h = 2 * D_MEAN * np.sin(theta1 / 2) * np.sin(alpha)
 
     p1 = np.array([D_MEAN * np.cos(theta1 / 2), 0, 0])
@@ -37,6 +42,8 @@ def get_ideal_parameters_from_three_internal_coordinates(theta1, tau1, theta2):
     '''Get 3 ideal beta sheet parameters R, alpha and delta from
     three internal coordinates
     '''
+    if theta1 > theta2:
+        raise Exception("Current implementation requires theta1 < theta2.")
 
     p0 = D_MEAN * np.array([np.sin(theta1), np.cos(theta1), 0])
     p1 = np.array([0, 0, 0])
@@ -67,7 +74,7 @@ def get_ideal_parameters_from_three_internal_coordinates(theta1, tau1, theta2):
 
     # Get the ideal parameters
 
-    alpha = np.arctan2(np.dot(z, p2), np.dot(y, p2))
+    alpha = np.arctan2(np.dot(z, p2 - p0), np.dot(y, p2 - p0))
     v1 = p1 - p0
     v2 = p3 - p2
     delta = geometry.angle(v1 - np.dot(v1, z) * z, v2 - np.dot(v2, z) * z)
@@ -91,6 +98,12 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, le
     # Generate one strand
 
     strand = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
-    
+   
+    # Get the screw axis
+
+    #x = geometry.normalize(strand[1] - (strand[2] + strand[0]) / 2)
+    #rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
+    #z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
+
     return strand ###DEBUG
 

@@ -9,11 +9,11 @@ import ss_generator as ssg
 def test_build_beta_sheet():
     print("test build beta sheet.")
 
-    theta1 = np.radians(123.9 + 10)
+    theta1 = np.radians(123.9 - 10)
+    tau1 = np.radians(165)
     #tau1 = np.radians(180)
-    tau1 = np.radians(190)
     #tau1 = np.radians(195.8)
-    theta2 = np.radians(123.9 - 10)
+    theta2 = np.radians(123.9 + 10)
 
     R, alpha, delta = ssg.beta_sheet.get_ideal_parameters_from_three_internal_coordinates(theta1, tau1, theta2)
     theta1_calc, tau1_calc, theta2_calc, tau2_calc = \
