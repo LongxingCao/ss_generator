@@ -1,5 +1,6 @@
 import numpy as np
 
+from . import numeric
 from . import geometry
 from . import basic
 
@@ -137,4 +138,124 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, le
         sheet.append([np.dot(M, ca) + t for ca in sheet[i - 1]])
 
     return sheet
+
+def get_strand_parameters(strand_type):
+    '''Return length, angle and torsion parameters of a strand'''
+    if strand_type == 'antiparallel':
+        return {'length_mean':3.798, 'length_std':0.03, 'angle_mean':np.radians(123.9),
+                'angle_std':np.radians(12.6), 'torsion_mean':np.radians(195.8), 'torsion_std':np.radians(48.2)}
+    
+    if strand_type == 'parallel':
+        return {'length_mean':3.799, 'length_std':0.03, 'angle_mean':np.radians(121.1),
+                'angle_std':np.radians(10.5), 'torsion_mean':np.radians(195.5), 'torsion_std':np.radians(30.9)}
+
+def get_bp_vector_parameters(strand_type, direction):
+    '''Return d_mean, d_std, x_mean, x_std, y_mean, y_std, x_y_cov
+    of a bp vector.
+    '''
+    if strand_type not in ['antiparallel', 'parallel'] or direction not in ['+', '-']:
+        raise Exception("Invalid bp vector type: {0}, {1}".format(strand_type, direction))
+
+    if strand_type == 'antiparallel':
+        if direction == '+':
+            return {'d_mean':4.50, 'd_std':0.28, 'x_mean':-0.836, 
+                    'x_std':1.324, 'y_mean':0.226, 'y_std':0.261, 'x_y_cov':0.383}
+        
+        elif direction == '-':
+            return {'d_mean':5.24, 'd_std':0.26, 'x_mean':1.177, 
+                    'x_std':1.884, 'y_mean':1.280,  'y_std':0.320, 'x_y_cov':0.400}
+    
+    if strand_type == 'parallel':
+        if direction == '+':
+            return {'d_mean':4.84, 'd_std':0.24, 'x_mean':-0.277, 
+                    'x_std':0.819, 'y_mean':-0.189, 'y_std':0.248, 'x_y_cov':0.286}
+        
+        elif direction == '-':
+            return {'d_mean':4.84, 'd_std':0.24, 'x_mean':0.751, 
+                    'x_std':0.918, 'y_mean':0.437, 'y_std':0.246, 'x_y_cov':0.244}
+
+def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
+    '''Return True if a bp_vector is allowed.'''
+
+    # Set parameters for different strand types
+
+    params = get_bp_vector_parameters(strand_type, direction)
+
+    # Check the direction
+
+    if (direction == '+' and bp_vector[2] < 0) \
+            or (direction == '-' and bp_vector[2] > 0):
+        return False
+
+    # Check the vector length
+
+    d = np.linalg.norm(bp_vector)
+
+    if d < params['d_mean'] - params['d_std'] \
+            or d > params['d_mean'] + params['d_std']:
+        return False
+
+    # Check the x-y distribution
+
+    return numeric.multivariate_gaussian(bp_vector[:2], np.array([params['x_mean'], params['y_mean']]),
+            np.array([[params['x_std'], params['x_y_cov']], [params['x_y_cov'], params['y_std']]])) > cutoff
+
+def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction): 
+    '''Build a random beta strand based on a reference strand.'''
+    
+    new_strand = []
+
+    # Build the first three atoms by translating the first three atoms of the reference
+
+    ref_frame = geometry.create_frame_from_three_points(ref_strand[0], ref_strand[1], ref_strand[2])
+    params = get_bp_vector_parameters(strand_type, direction)
+
+    z_abs = np.sqrt(params['d_mean'] ** 2 - params['x_mean'] ** 2 - params['y_mean'] ** 2)
+    z = z_abs if direction == '+' else -z_abs
+
+    t = params['x_mean'] * ref_frame[0] + params['y_mean'] * ref_frame[1] + z * ref_frame[2]
+
+    for i in range(3):
+        new_strand.append(ref_strand[i] + t)
+
+    # Add a atom to the reference strand such that we can build a frame for the last atom
+    
+    strand_params = get_strand_parameters(strand_type)
+    extended_strand = ref_strand + [geometry.cartesian_coord_from_internal_coord(ref_strand[-3],
+                        ref_strand[-2], ref_strand[-1], strand_params['length_mean'], 
+                        strand_params['angle_mean'], strand_params['torsion_mean'])]
+
+    # Extend the strand randomly
+    
+    for i in range(3, len(ref_strand)):
+        ref_frame = geometry.create_frame_from_three_points(
+                extended_strand[i - 1], extended_strand[i], extended_strand[i + 1])
+
+        # Try to find a proper value of theta and tau
+        
+        j = 0
+
+        while j < 1000:
+            theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
+            tau = np.random.normal(strand_params['torsion_mean'], 0.5 * strand_params['torsion_mean'])
+
+            p = geometry.cartesian_coord_from_internal_coord(new_strand[i - 3],
+                    new_strand[i - 2], new_strand[i - 1], strand_params['length_mean'], theta, tau)
+
+            p_local = np.dot(ref_frame, p - ref_strand[i])
+
+            if check_bp_vector(p_local, strand_type, direction):
+                new_strand.append(p)
+                
+                direction = '-' if direction == '+' else '+' #Flip the direction
+                break
+            
+            j += 1
+
+        if j >= 100:
+            return None
+
+    return new_strand
+
+    
 

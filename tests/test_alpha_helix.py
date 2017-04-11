@@ -86,8 +86,8 @@ def test_perturb_alpha_helix():
     random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
     ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
 
-    #phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
-    #ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
+    phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
+    ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
 
     ca_to_twist = random_perturbed_ca_list
     twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
