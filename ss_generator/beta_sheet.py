@@ -174,9 +174,9 @@ def get_bp_vector_parameters(strand_type, direction):
             return {'d_mean':4.84, 'd_std':0.24, 'x_mean':0.751, 
                     'x_std':0.918, 'y_mean':0.437, 'y_std':0.246, 'x_y_cov':0.244}
 
-def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
-    '''Return True if a bp_vector is allowed.'''
-
+def get_bp_vector_score(bp_vector, strand_type, direction):
+    '''Get the score of a bp vector, which is the probability
+    density of that bp vector.'''
     # Set parameters for different strand types
 
     params = get_bp_vector_parameters(strand_type, direction)
@@ -185,7 +185,7 @@ def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
 
     if (direction == '+' and bp_vector[2] < 0) \
             or (direction == '-' and bp_vector[2] > 0):
-        return False
+        return 0
 
     # Check the vector length
 
@@ -193,18 +193,22 @@ def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
 
     if d < params['d_mean'] - params['d_std'] \
             or d > params['d_mean'] + params['d_std']:
-        return False
+        return 0
 
-    # Check the x-y distribution
+    # Return the probability density
 
     return numeric.multivariate_gaussian(bp_vector[:2], np.array([params['x_mean'], params['y_mean']]),
-            np.array([[params['x_std'], params['x_y_cov']], [params['x_y_cov'], params['y_std']]])) > cutoff
+            np.array([[params['x_std'], params['x_y_cov']], [params['x_y_cov'], params['y_std']]]))
 
-def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction): 
-    '''Build a random beta strand based on a reference strand.'''
+def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
+    '''Return True if a bp_vector is allowed.'''
+
+    return get_bp_vector_score(bp_vector, strand_type, direction) > cutoff
+
+def make_strand_seed(ref_strand, strand_type, direction):
+    '''Make a three atom seed needed to grow a strand.'''
+    strand_seed = []
     
-    new_strand = []
-
     # Build the first three atoms by translating the first three atoms of the reference
 
     ref_frame = geometry.create_frame_from_three_points(ref_strand[0], ref_strand[1], ref_strand[2])
@@ -216,7 +220,14 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction):
     t = params['x_mean'] * ref_frame[0] + params['y_mean'] * ref_frame[1] + z * ref_frame[2]
 
     for i in range(3):
-        new_strand.append(ref_strand[i] + t)
+        strand_seed.append(ref_strand[i] + t)
+
+    return strand_seed
+
+def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction): 
+    '''Build a random beta strand based on a reference strand.'''
+    
+    new_strand = make_strand_seed(ref_strand, strand_type, direction)
 
     # Add a atom to the reference strand such that we can build a frame for the last atom
     
@@ -232,10 +243,13 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction):
                 extended_strand[i - 1], extended_strand[i], extended_strand[i + 1])
 
         # Try to find a proper value of theta and tau
-        
-        j = 0
+       
+        theta_best = 0
+        tau_best = 0
+        score_best = 0
+        p_best = None
 
-        while j < 1000:
+        for j in range(100):
             theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
             tau = np.random.normal(strand_params['torsion_mean'], 0.5 * strand_params['torsion_mean'])
 
@@ -244,16 +258,19 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction):
 
             p_local = np.dot(ref_frame, p - ref_strand[i])
 
-            if check_bp_vector(p_local, strand_type, direction):
-                new_strand.append(p)
-                
-                direction = '-' if direction == '+' else '+' #Flip the direction
-                break
-            
-            j += 1
+            score = get_bp_vector_score(p_local, strand_type, direction)
 
-        if j >= 100:
+            if score > score_best:
+                theta_best = theta
+                tau_best = tau
+                score_best = score
+                p_best = p
+
+        if score_best < 0.1:
             return None
+                
+        new_strand.append(p_best)
+        direction = '-' if direction == '+' else '+' #Flip the direction
 
     return new_strand
 
