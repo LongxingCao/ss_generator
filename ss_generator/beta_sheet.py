@@ -224,10 +224,13 @@ def make_strand_seed(ref_strand, strand_type, direction):
 
     return strand_seed
 
-def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction): 
+def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, seed=None): 
     '''Build a random beta strand based on a reference strand.'''
-    
-    new_strand = make_strand_seed(ref_strand, strand_type, direction)
+   
+    if seed is None:
+        seed = make_strand_seed(ref_strand, strand_type, direction)
+
+    new_strand = seed 
 
     # Add a atom to the reference strand such that we can build a frame for the last atom
     

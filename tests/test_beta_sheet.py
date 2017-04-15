@@ -43,10 +43,10 @@ def test_purterb_beta_sheet():
 
     rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '-')
     while rand_strand is None:
-        rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '-')
+        rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '-', seed=ca_list_before_purterb[0][:3])
     ssg.IO.save_ca_list(rand_strand, 'rand_strand.pdb')
 
-    rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '+')
-    while rand_strand is None:
-        rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '+')
-    ssg.IO.save_ca_list(rand_strand, 'rand_strand2.pdb')
+    #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '+')
+    #while rand_strand is None:
+    #    rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '+')
+    #ssg.IO.save_ca_list(rand_strand, 'rand_strand2.pdb')
