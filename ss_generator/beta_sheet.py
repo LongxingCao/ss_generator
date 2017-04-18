@@ -294,5 +294,52 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
 
     return new_strand
 
-    
+def bend_strand(strand, bend_position, bend_coef):
+    '''Bend a strand at a given position by changing the local screw radius. 
+    The new screw radius will be the old one times bend_coef. The value of
+    delta should also be adjusted.
+    '''
+    return perturb_strand_local(strand, bend_position, 
+            lambda x : (x[0] * bend_coef, 2 * np.arctan(np.tan(x[1] / 2) / bend_coef), x[2], x[3]))
+
+def twist_strand(strand, twist_position, alpha_change):
+    '''Twist a strand at a given position by shift the local alpha.
+    The value of delta should also be adjusted.
+    '''
+    return perturb_strand_local(strand, twist_position,
+            lambda x : (x[0], 2 * np.arctan(np.tan(x[1] / 2) * np.cos(x[2] + alpha_change) / np.cos(x[2])), 
+                x[2] + alpha_change, x[3]))
+
+def perturb_strand_local(strand, position, perturb_function):
+    '''Perturb a strand at a given position according to a 
+    perturb_function.
+    '''
+
+    # get internal coordinates
+
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(strand)
+
+    # get old geometry parameters
+
+    R, delta, alpha, eta = perturb_function(get_ideal_parameters_from_internal_coordinates(
+            thetas[position - 1], taus[position - 1], thetas[position], taus[position]))
+
+    # update internal coordinates
+
+    thetas[position - 1], taus[position - 1], thetas[position], taus[position] = \
+            get_internal_coordinates_for_ideal_strand(R, delta, alpha, eta)
+
+    thetas[position + 1] = thetas[position - 1]
+    taus[position + 1] = taus[position - 1]
+
+    # return a new strand
+
+    new_strand = strand[:3]
+
+    for i in range(3, len(strand)):
+        new_strand.append(geometry.cartesian_coord_from_internal_coord(
+            new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
+            ds[i - 1], thetas[i - 2], taus[i - 3]))
+
+    return new_strand
 
