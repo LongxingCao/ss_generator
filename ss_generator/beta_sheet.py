@@ -6,7 +6,6 @@ from . import basic
 
 
 D_MEAN = 3.80
-PARA_BP_LEN_PLUS = 4.84
 
 def get_internal_coordinates_for_ideal_strand(R, delta, alpha, eta):
     '''Get 4 internal coordinates for an ideal beta strand.
@@ -93,61 +92,69 @@ def get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2):
 
     return R, delta, alpha, eta
 
-def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, length, num_strands):
+def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, length, num_strands, sheet_type='parallel'):
     '''Generate an ideal beta sheet from three internal coordinates, the length of each strand
     and the number of strands.
     '''
-    pass
-#    # Calculate the internal coordinates
-#    
-#    R, alpha, delta = get_ideal_parameters_from_three_internal_coordinates(theta1, tau1, theta2)
-#    theta1, tau1, theta2, tau2 = get_internal_coordinates_for_ideal_sheet(R, alpha, delta)
-#
-#    ds = [D_MEAN] * (length - 1)
-#    thetas = ([theta1, theta2] * length)[:length - 2]
-#    taus = ([tau1, tau2] * length)[:length - 3]
-#
-#    # Generate one strand
-#
-#    strand = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
-#
-#    # Get the outer cylinder radius
-#
-#    R_out = R + D_MEAN * np.cos(theta1 / 2)
-#
-#    # Get the screw axis
-#
-#    x = geometry.normalize(strand[1] - (strand[2] + strand[0]) / 2)
-#    rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
-#    z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
-#    u = strand[1] - R_out * x
-#
-#    # Get the pitch
-#
-#    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
-#
-#    # Get the screw angle
-#
-#    screw_angle = -PARA_BP_LEN_PLUS * np.sin(alpha) / R_out 
-#
-#    # Get the screw rotation and translation
-#
-#    M, t = geometry.get_screw(-z, screw_angle, pitch, u)
-#
-#    # If the alpha is zero, do a pure translation
-#
-#    if np.absolute(alpha) < 0.001:
-#        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-#        t = -PARA_BP_LEN_PLUS * z
-#
-#    # Generate strands
-#
-#    sheet = [strand]
-#    
-#    for i in range(1, num_strands):
-#        sheet.append([np.dot(M, ca) + t for ca in sheet[i - 1]])
-#
-#    return sheet
+    # Generate one strand
+
+    ds = [D_MEAN] * (length - 1)
+    thetas = ([theta1, theta2] * length)[:length - 2]
+    taus = ([tau1, tau2] * length)[:length - 3]
+
+    strand = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
+
+    # Get the ideal parameters
+
+    R, delta, alpha, eta = get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
+
+    # For parallel sheets, use a simple way to generate other strands
+    
+    if sheet_type == 'parallel':
+
+        PARA_BP_LEN_PLUS = 4.84
+
+        # Get the outer cylinder radius
+    
+        R_out = R + D_MEAN * np.cos(theta1 / 2)
+    
+        # Get the screw axis
+   
+        rot_p2_p0 = geometry.rotation_matrix_from_axis_and_angle(strand[2] - strand[0], -eta)
+        x = geometry.normalize(np.dot(rot_p2_p0, strand[1] - (strand[2] + strand[0]) / 2))
+        rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
+        z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
+        u = (strand[0] + strand[2]) / 2 - R * x
+    
+        # Get the pitch
+    
+        pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
+    
+        # Get the screw angle
+    
+        screw_angle = -PARA_BP_LEN_PLUS * np.sin(alpha) / R_out 
+    
+        # Get the screw rotation and translation
+    
+        M, t = geometry.get_screw(-z, screw_angle, pitch, u)
+    
+        # If the alpha is zero, do a pure translation
+    
+        if np.absolute(alpha) < 0.001:
+            M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            t = -PARA_BP_LEN_PLUS * z
+    
+        # Generate strands
+    
+        sheet = [strand]
+        
+        for i in range(1, num_strands):
+            sheet.append([np.dot(M, ca) + t for ca in sheet[i - 1]])
+    
+        return sheet
+
+    else:
+        raise Exception("Current implementation only support parallel sheets.")
 
 def get_strand_parameters(strand_type):
     '''Return length, angle and torsion parameters of a strand'''

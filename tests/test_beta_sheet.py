@@ -13,10 +13,10 @@ def test_build_beta_sheet():
     #theta1 = np.radians(123.9 - 10)
     #tau1 = np.radians(165)
     #tau1 = np.radians(180)
-    tau1 = np.radians(195)
+    tau1 = np.radians(175)
     #tau1 = np.radians(195.8)
     theta2 = np.radians(123.9 + 10)
-    tau2 = np.radians(185)
+    tau2 = np.radians(195)
 
     R, delta, alpha, eta = ssg.beta_sheet.get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
     
@@ -29,9 +29,9 @@ def test_build_beta_sheet():
     print("theta2 = {0:.2f}, theta2_calc = {1:.2f}".format(np.degrees(theta2), np.degrees(theta2_calc)))
     print("tau2 = {0:.2f}, tau2_calc = {1:.2f}".format(np.degrees(tau2), np.degrees(tau2_calc)))
 
-    #
-    #ca_list = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, 20, 8)
-    #ssg.IO.save_ca_list(ca_list, "ideal_sheet.pdb")
+    
+    ca_list = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 20, 8)
+    ssg.IO.save_ca_list(ca_list, "ideal_sheet.pdb")
 
 def test_purterb_beta_sheet():
     print("test purterb beta sheet.")
@@ -39,9 +39,10 @@ def test_purterb_beta_sheet():
     theta1 = np.radians(123.9 - 5)
     tau1 = np.radians(185)
     theta2 = np.radians(123.9 + 5)
-    
-    #ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, 10, 5)
-    #ssg.IO.save_ca_list(ca_list_before_purterb, "sheet_before_purterb.pdb")
+    tau2 = np.radians(195)
+
+    ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 10, 5)
+    ssg.IO.save_ca_list(ca_list_before_purterb, "sheet_before_purterb.pdb")
 
     #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'antiparallel', '-')
     #while rand_strand is None:
