@@ -37,24 +37,27 @@ def test_purterb_beta_sheet():
     print("test purterb beta sheet.")
 
     theta1 = np.radians(123.9 - 5)
-    tau1 = np.radians(185)
+    tau1 = np.radians(195)
     theta2 = np.radians(123.9 + 5)
-    tau2 = np.radians(195)
+    tau2 = np.radians(185)
 
-    ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 5, 5)
+    ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 8, 5)
     ssg.IO.save_ca_list(ca_list_before_purterb, "sheet_before_purterb.pdb")
 
-    rand_strand = None
-    while rand_strand is None:
-        rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '-')
-        #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', seed=ca_list_before_purterb[0][:3])
-    ssg.IO.save_ca_list(rand_strand, 'rand_strand.pdb')
+    #rand_strand = None
+    #while rand_strand is None:
+    #    rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '-')
+    #    #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', seed=ca_list_before_purterb[0][:3])
+    #ssg.IO.save_ca_list(rand_strand, 'rand_strand.pdb')
 
-    rand_strand = None
-    while rand_strand is None:
-        rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+')
-        #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', seed=ca_list_before_purterb[2][:3])
-    ssg.IO.save_ca_list(rand_strand, 'rand_strand2.pdb')
+    #rand_strand = None
+    #while rand_strand is None:
+    #    rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+')
+    #    #rand_strand = ssg.beta_sheet.build_a_random_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', seed=ca_list_before_purterb[2][:3])
+    #ssg.IO.save_ca_list(rand_strand, 'rand_strand2.pdb')
+
+    rand_sheet = ssg.beta_sheet.build_a_random_sheet_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', 3)
+    ssg.IO.save_ca_list(rand_sheet, 'rand_sheet.pdb')
 
     #bended_strand = ssg.beta_sheet.bend_strand(ca_list_before_purterb[1], 3, 0.6)
     #ssg.IO.save_ca_list(bended_strand, 'bend_strand.pdb')

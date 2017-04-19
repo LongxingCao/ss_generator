@@ -271,7 +271,7 @@ def make_strand_seed(ref_strand, strand_type, direction):
 
     return strand_seed
 
-def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, seed=None): 
+def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, seed=None, adjust_first_atom=False): 
     '''Build a random beta strand based on a reference strand.'''
    
     if seed is None:
@@ -322,7 +322,29 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
         new_strand.append(p_best)
         direction = '-' if direction == '+' else '+' #Flip the direction
 
+    # Adjust the position of the first atom
+
+    if adjust_first_atom:
+        new_strand[0] = new_strand[1] + new_strand[2] - new_strand[3]
+
     return new_strand
+
+def build_a_random_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
+    '''Build a random sheet from a reference strand.'''
+    new_sheet = [ref_strand[:]]
+
+    while len(new_sheet) < num_strands:
+        for i in range(1, num_strands):
+            strand = build_a_random_strand_from_a_reference(new_sheet[i - 1], 
+                    strand_type, direction, adjust_first_atom=True)
+
+            if strand is None:
+                new_sheet = new_sheet[:1]
+                break
+
+            new_sheet.append(strand)
+
+    return new_sheet
 
 def bend_strand(strand, bend_position, bend_coef):
     '''Bend a strand at a given position by changing the local screw radius. 
