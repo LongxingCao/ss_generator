@@ -112,7 +112,8 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
     
     if sheet_type == 'parallel':
 
-        PARA_BP_LEN_PLUS = 4.84
+        PARA_BP_LEN_MEAN = 4.84
+        PARA_BP_LEN_STD = 0.24
 
         # Get the outer cylinder radius
     
@@ -131,8 +132,12 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
         pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
     
         # Get the screw angle
+        # Because the equation used for screw angle calculation will
+        # slightly shrink the length of bp vectors and also because
+        # the outer part of the sheet should have larger bp vector length,
+        # use PARA_BP_LEN_MEAN + PARA_BP_LEN_STD here.
     
-        screw_angle = -PARA_BP_LEN_PLUS * np.sin(alpha) / R_out 
+        screw_angle = -(PARA_BP_LEN_MEAN + PARA_BP_LEN_STD) * np.sin(alpha) / R_out 
     
         # Get the screw rotation and translation
     
@@ -142,7 +147,7 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
     
         if np.absolute(alpha) < 0.001:
             M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            t = -PARA_BP_LEN_PLUS * z
+            t = -(PARA_BP_LEN_MEAN + PARA_BP_LEN_STD) * z
     
         # Generate strands
     
@@ -207,14 +212,11 @@ def get_bp_vector_score(bp_vector, strand_type, direction):
     # Check the vector length
 
     d = np.linalg.norm(bp_vector)
-
-    if d < params['d_mean'] - params['d_std'] \
-            or d > params['d_mean'] + params['d_std']:
-        return 0
+    d_score = numeric.gaussian(d, params['d_mean'], params['d_std'])
 
     # Return the probability density
 
-    return numeric.multivariate_gaussian(bp_vector[:2], np.array([params['x_mean'], params['y_mean']]),
+    return d_score * numeric.multivariate_gaussian(bp_vector[:2], np.array([params['x_mean'], params['y_mean']]),
             np.array([[params['x_std'], params['x_y_cov']], [params['x_y_cov'], params['y_std']]]))
 
 def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
@@ -225,8 +227,9 @@ def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
 def make_strand_seed(ref_strand, strand_type, direction):
     '''Make a three atom seed needed to grow a strand.'''
     strand_seed = []
-    
-    # Build the first three atoms by translating the first three atoms of the reference
+    strand_params = get_strand_parameters(strand_type)
+
+    # Build the first two atoms by translating the first two atoms of the reference
 
     ref_frame = geometry.create_frame_from_three_points(ref_strand[0], ref_strand[1], ref_strand[2])
     params = get_bp_vector_parameters(strand_type, direction)
@@ -236,8 +239,35 @@ def make_strand_seed(ref_strand, strand_type, direction):
 
     t = params['x_mean'] * ref_frame[0] + params['y_mean'] * ref_frame[1] + z * ref_frame[2]
 
-    for i in range(3):
+    for i in range(2):
         strand_seed.append(ref_strand[i] + t)
+
+    # Get the third seed atom by search the best position relactive to the reference frame
+
+    direction2 = '-' if direction == '+' else '+'
+
+    ref_frame2 = geometry.create_frame_from_three_points(ref_strand[1], ref_strand[2], ref_strand[3])
+
+    v = geometry.normalize(strand_seed[1] - strand_seed[0])
+
+    best_score = 0
+    best_p = None
+
+    for i in range(2000):
+        theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
+        u = np.array([np.random.normal(0, 1), np.random.normal(0, 1), np.random.normal(0, 1)])
+        uu = geometry.normalize(u - np.dot(u, v) * v)
+
+        p = strand_params['length_mean'] * (np.sin(theta) * uu - np.cos(theta) * v) + strand_seed[1]
+        p_local = np.dot(ref_frame2, p - ref_strand[2])
+
+        score = get_bp_vector_score(p_local, strand_type, direction2)
+
+        if score > best_score:
+            best_p = p
+            best_score = score
+
+    strand_seed.append(best_p)
 
     return strand_seed
 
@@ -271,7 +301,7 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
 
         for j in range(100):
             theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
-            tau = np.random.normal(strand_params['torsion_mean'], 0.5 * strand_params['torsion_mean'])
+            tau = np.random.normal(strand_params['torsion_mean'], 0.5 * strand_params['torsion_std'])
 
             p = geometry.cartesian_coord_from_internal_coord(new_strand[i - 3],
                     new_strand[i - 2], new_strand[i - 1], strand_params['length_mean'], theta, tau)
@@ -286,7 +316,7 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
                 score_best = score
                 p_best = p
 
-        if score_best < 0.1:
+        if score_best < 0.01:
             return None
                 
         new_strand.append(p_best)
