@@ -411,6 +411,15 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
 
     return [first_p] + expected_positions + [last_p]
 
+def build_a_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
+    '''Build a sheet from a reference strand.'''
+    sheet = [ref_strand[:]]
+
+    for i in range(1, num_strands):
+        sheet.append(build_a_strand_from_a_reference(sheet[i - 1], strand_type, direction))
+
+    return sheet
+
 def bend_strand(strand, bend_position, bend_coef):
     '''Bend a strand at a given position by changing the local screw radius. 
     The new screw radius will be the old one times bend_coef. The value of
