@@ -372,9 +372,23 @@ def get_expected_bp_positions_of_strand(strand, strand_type, direction):
 
 def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     '''Build a strand from a reference strand.'''
+    # Extend the reference strand at two ends
+
+    last_p = geometry.cartesian_coord_from_internal_coord(
+            ref_strand[-3], ref_strand[-2], ref_strand[-1], D_MEAN, 
+            geometry.angle(ref_strand[-4] - ref_strand[-3], ref_strand[-2] - ref_strand[-3]),
+            geometry.dihedral(ref_strand[-5], ref_strand[-4], ref_strand[-3], ref_strand[-2]))
+
+    first_p = geometry.cartesian_coord_from_internal_coord(
+            ref_strand[2], ref_strand[1], ref_strand[0], D_MEAN,
+            geometry.angle(ref_strand[3] - ref_strand[2], ref_strand[1] - ref_strand[2]),
+            geometry.dihedral(ref_strand[4], ref_strand[3], ref_strand[2], ref_strand[1]))
+
+    extended_ref = [first_p] + ref_strand + [last_p]
+    
     # Get expected positions
     
-    expected_positions = get_expected_bp_positions_of_strand(ref_strand, strand_type, direction)
+    expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
     
@@ -404,12 +418,7 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     for i in range(len(expected_positions)):
         expected_positions[i] += center_of_mass_old - center_of_mass_new
 
-    # Add the two end points
-
-    first_p = ref_strand[0] + expected_positions[0] - ref_strand[1]
-    last_p = ref_strand[-1] + expected_positions[-1] - ref_strand[-2]
-
-    return [first_p] + expected_positions + [last_p]
+    return expected_positions 
 
 def build_a_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
     '''Build a sheet from a reference strand.'''
