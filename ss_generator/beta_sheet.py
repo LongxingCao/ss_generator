@@ -254,7 +254,7 @@ def make_strand_seed(ref_strand, strand_type, direction):
     best_p = None
 
     for i in range(2000):
-        theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
+        theta = np.random.normal(strand_params['angle_mean'], strand_params['angle_std'])
         u = np.array([np.random.normal(0, 1), np.random.normal(0, 1), np.random.normal(0, 1)])
         uu = geometry.normalize(u - np.dot(u, v) * v)
 
@@ -299,9 +299,9 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
         score_best = 0
         p_best = None
 
-        for j in range(100):
-            theta = np.random.normal(strand_params['angle_mean'], 0.5 * strand_params['angle_std'])
-            tau = np.random.normal(strand_params['torsion_mean'], 0.5 * strand_params['torsion_std'])
+        for j in range(300):
+            theta = np.random.normal(strand_params['angle_mean'],  strand_params['angle_std'])
+            tau = np.random.normal(strand_params['torsion_mean'],  strand_params['torsion_std'])
 
             p = geometry.cartesian_coord_from_internal_coord(new_strand[i - 3],
                     new_strand[i - 2], new_strand[i - 1], strand_params['length_mean'], theta, tau)
@@ -345,6 +345,71 @@ def build_a_random_sheet_from_a_reference(ref_strand, strand_type, direction, nu
             new_sheet.append(strand)
 
     return new_sheet
+
+def get_expected_bp_position_of_three_atoms(ref_atoms, strand_type, direction):
+    '''Return the expected bp position defined by three atoms.'''
+    frame = geometry.create_frame_from_three_points(ref_atoms[0], ref_atoms[1], ref_atoms[2])
+    
+    params = get_bp_vector_parameters(strand_type, direction)
+    x = params['x_mean']
+    y = params['y_mean']
+    z_abs = np.sqrt(params['d_mean'] ** 2 - x ** 2 - y ** 2)
+    z = z_abs if direction == '+' else -z_abs
+
+    return ref_atoms[1] + np.dot(np.transpose(frame), np.array([x, y, z]))
+   
+def get_expected_bp_positions_of_strand(strand, strand_type, direction):
+    '''Get the expected bp positions of a strand.'''
+    expected_positions = []
+
+    for i in range(len(strand) - 2):
+        expected_positions.append(get_expected_bp_position_of_three_atoms(
+            strand[i:i + 3], strand_type, direction))
+        
+        direction = '-' if direction == '+' else '+'
+
+    return expected_positions
+
+def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
+    '''Build a strand from a reference strand.'''
+    # Get expected positions
+    
+    expected_positions = get_expected_bp_positions_of_strand(ref_strand, strand_type, direction)
+
+    # Adjust the expected positions such that the bond lengths are the ideal value
+    
+    center_of_mass_old = sum(expected_positions) / len(expected_positions)
+
+    i = 1
+    while i < len(expected_positions) - 1:
+        v = expected_positions[i + 1] - expected_positions[i - 1]
+        vv = geometry.normalize(v)
+        center = (expected_positions[i - 1] + expected_positions[i + 1]) / 2
+        u = expected_positions[i] - center
+        t = geometry.normalize(u - np.dot(u, vv) * vv)
+        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2)
+
+        expected_positions[i] = center + l * t
+
+        i += 2
+
+    # When the number of expected positions is even, adjust the last position
+
+    if len(expected_positions) % 2 == 0:
+        v = geometry.normalize(expected_positions[-1] - expected_positions[-2])
+        expected_positions[-1] = expected_positions[-2] + D_MEAN * v
+
+    center_of_mass_new = sum(expected_positions) / len(expected_positions)
+
+    for i in range(len(expected_positions)):
+        expected_positions[i] += center_of_mass_old - center_of_mass_new
+
+    # Add the two end points
+
+    first_p = ref_strand[0] + expected_positions[0] - ref_strand[1]
+    last_p = ref_strand[-1] + expected_positions[-1] - ref_strand[-2]
+
+    return [first_p] + expected_positions + [last_p]
 
 def bend_strand(strand, bend_position, bend_coef):
     '''Bend a strand at a given position by changing the local screw radius. 
