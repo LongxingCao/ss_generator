@@ -137,7 +137,7 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     
     # If the alpha is zero, do a pure translation
     
-    if np.absolute(alpha) < 0.001:
+    if np.absolute(alpha) < 0.001 or np.absolute(alpha - np.pi) < 0.001:
         M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         t = distance * z
         return M, t

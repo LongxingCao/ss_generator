@@ -8,8 +8,9 @@ def normalize(v):
     return v / np.linalg.norm(v)
 
 def angle(v1, v2):
-    '''Return the angle between two vectors in ratian.'''
-    return np.arccos(np.dot(normalize(v1), normalize(v2)))
+    '''Return the angle between two vectors in radian.'''
+    cos = max(-1, min(1, np.dot(normalize(v1), normalize(v2))))
+    return np.arccos(cos)
 
 def dihedral(p1, p2, p3, p4):
     '''Return the dihedral defined by 4 points in 
