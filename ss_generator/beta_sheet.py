@@ -224,14 +224,14 @@ def check_bp_vector(bp_vector, strand_type, direction, cutoff=0.1):
 
     return get_bp_vector_score(bp_vector, strand_type, direction) > cutoff
 
-def make_strand_seed(ref_strand, strand_type, direction):
+def make_strand_seed(strand, strand_type, direction):
     '''Make a three atom seed needed to grow a strand.'''
     strand_seed = []
     strand_params = get_strand_parameters(strand_type)
 
     # Build the first two atoms by translating the first two atoms of the reference
 
-    ref_frame = geometry.create_frame_from_three_points(ref_strand[0], ref_strand[1], ref_strand[2])
+    ref_frame = geometry.create_frame_from_three_points(strand[0], strand[1], strand[2])
     params = get_bp_vector_parameters(strand_type, direction)
 
     z_abs = np.sqrt(params['d_mean'] ** 2 - params['x_mean'] ** 2 - params['y_mean'] ** 2)
@@ -240,13 +240,13 @@ def make_strand_seed(ref_strand, strand_type, direction):
     t = params['x_mean'] * ref_frame[0] + params['y_mean'] * ref_frame[1] + z * ref_frame[2]
 
     for i in range(2):
-        strand_seed.append(ref_strand[i] + t)
+        strand_seed.append(strand[i] + t)
 
     # Get the third seed atom by search the best position relactive to the reference frame
 
     direction2 = '-' if direction == '+' else '+'
 
-    ref_frame2 = geometry.create_frame_from_three_points(ref_strand[1], ref_strand[2], ref_strand[3])
+    ref_frame2 = geometry.create_frame_from_three_points(strand[1], strand[2], strand[3])
 
     v = geometry.normalize(strand_seed[1] - strand_seed[0])
 
@@ -259,7 +259,7 @@ def make_strand_seed(ref_strand, strand_type, direction):
         uu = geometry.normalize(u - np.dot(u, v) * v)
 
         p = strand_params['length_mean'] * (np.sin(theta) * uu - np.cos(theta) * v) + strand_seed[1]
-        p_local = np.dot(ref_frame2, p - ref_strand[2])
+        p_local = np.dot(ref_frame2, p - strand[2])
 
         score = get_bp_vector_score(p_local, strand_type, direction2)
 
@@ -271,24 +271,24 @@ def make_strand_seed(ref_strand, strand_type, direction):
 
     return strand_seed
 
-def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, seed=None, adjust_first_atom=False): 
+def build_a_random_strand_from_a_reference(strand, strand_type, direction, seed=None, adjust_first_atom=False): 
     '''Build a random beta strand based on a reference strand.'''
    
     if seed is None:
-        seed = make_strand_seed(ref_strand, strand_type, direction)
+        seed = make_strand_seed(strand, strand_type, direction)
 
     new_strand = seed 
 
     # Add a atom to the reference strand such that we can build a frame for the last atom
     
     strand_params = get_strand_parameters(strand_type)
-    extended_strand = ref_strand + [geometry.cartesian_coord_from_internal_coord(ref_strand[-3],
-                        ref_strand[-2], ref_strand[-1], strand_params['length_mean'], 
+    extended_strand = strand + [geometry.cartesian_coord_from_internal_coord(strand[-3],
+                        strand[-2], strand[-1], strand_params['length_mean'], 
                         strand_params['angle_mean'], strand_params['torsion_mean'])]
 
     # Extend the strand randomly
     
-    for i in range(3, len(ref_strand)):
+    for i in range(3, len(strand)):
         ref_frame = geometry.create_frame_from_three_points(
                 extended_strand[i - 1], extended_strand[i], extended_strand[i + 1])
 
@@ -306,7 +306,7 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
             p = geometry.cartesian_coord_from_internal_coord(new_strand[i - 3],
                     new_strand[i - 2], new_strand[i - 1], strand_params['length_mean'], theta, tau)
 
-            p_local = np.dot(ref_frame, p - ref_strand[i])
+            p_local = np.dot(ref_frame, p - strand[i])
 
             score = get_bp_vector_score(p_local, strand_type, direction)
 
@@ -329,9 +329,9 @@ def build_a_random_strand_from_a_reference(ref_strand, strand_type, direction, s
 
     return new_strand
 
-def build_a_random_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
+def build_a_random_sheet_from_a_reference(strand, strand_type, direction, num_strands):
     '''Build a random sheet from a reference strand.'''
-    new_sheet = [ref_strand[:]]
+    new_sheet = [strand[:]]
 
     while len(new_sheet) < num_strands:
         for i in range(1, num_strands):
@@ -345,6 +345,26 @@ def build_a_random_sheet_from_a_reference(ref_strand, strand_type, direction, nu
             new_sheet.append(strand)
 
     return new_sheet
+
+def extend_a_strand(strand, forward=True):
+    '''Extend a strand by one atom. Angle and torsion of the 
+    strand will be used to extend the new atom.
+    '''
+    if forward:
+        last_p = geometry.cartesian_coord_from_internal_coord(
+                strand[-3], strand[-2], strand[-1], D_MEAN, 
+                geometry.angle(strand[-4] - strand[-3], strand[-2] - strand[-3]),
+                geometry.dihedral(strand[-5], strand[-4], strand[-3], strand[-2]))
+        
+        return strand + [last_p]
+
+    else:
+        first_p = geometry.cartesian_coord_from_internal_coord(
+                strand[2], strand[1], strand[0], D_MEAN,
+                geometry.angle(strand[3] - strand[2], strand[1] - strand[2]),
+                geometry.dihedral(strand[4], strand[3], strand[2], strand[1]))
+        
+        return [first_p] + strand
 
 def get_expected_bp_position_of_three_atoms(ref_atoms, strand_type, direction):
     '''Return the expected bp position defined by three atoms.'''
@@ -373,19 +393,10 @@ def get_expected_bp_positions_of_strand(strand, strand_type, direction):
 def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     '''Build a strand from a reference strand.'''
     # Extend the reference strand at two ends
-
-    last_p = geometry.cartesian_coord_from_internal_coord(
-            ref_strand[-3], ref_strand[-2], ref_strand[-1], D_MEAN, 
-            geometry.angle(ref_strand[-4] - ref_strand[-3], ref_strand[-2] - ref_strand[-3]),
-            geometry.dihedral(ref_strand[-5], ref_strand[-4], ref_strand[-3], ref_strand[-2]))
-
-    first_p = geometry.cartesian_coord_from_internal_coord(
-            ref_strand[2], ref_strand[1], ref_strand[0], D_MEAN,
-            geometry.angle(ref_strand[3] - ref_strand[2], ref_strand[1] - ref_strand[2]),
-            geometry.dihedral(ref_strand[4], ref_strand[3], ref_strand[2], ref_strand[1]))
-
-    extended_ref = [first_p] + ref_strand + [last_p]
     
+    extended_ref = extend_a_strand(ref_strand, True)
+    extended_ref = extend_a_strand(extended_ref, False)
+
     # Get expected positions
     
     expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
