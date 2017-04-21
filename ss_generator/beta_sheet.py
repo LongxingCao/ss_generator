@@ -455,9 +455,13 @@ def get_expected_bp_positions_of_strand(strand, strand_type, direction, method='
 
 def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     '''Build a strand from a reference strand.'''
+    # When the number of expected positions is even, extend the strand by one atom
+
+    extended_ref = ref_strand if len(ref_strand) % 2 != 0 else extend_a_strand(ref_strand, True)
+
     # Get expected positions
     
-    expected_positions = get_expected_bp_positions_of_strand(ref_strand, strand_type, direction)
+    expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
     
@@ -476,18 +480,12 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
 
         i += 2
 
-    # When the number of expected positions is even, adjust the last position
-
-    if len(expected_positions) % 2 == 0:
-        v = geometry.normalize(expected_positions[-1] - expected_positions[-2])
-        expected_positions[-1] = expected_positions[-2] + D_MEAN * v
-
     center_of_mass_new = sum(expected_positions) / len(expected_positions)
 
     for i in range(len(expected_positions)):
         expected_positions[i] += center_of_mass_old - center_of_mass_new
 
-    return expected_positions 
+    return expected_positions[:len(ref_strand)] 
 
 def build_a_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
     '''Build a sheet from a reference strand.'''
