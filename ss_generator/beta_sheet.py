@@ -54,8 +54,10 @@ def get_internal_coordinates_for_ideal_strand(R, delta, alpha, eta):
 def get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2):
     '''Get ideal parameters R, delta, alpha and eta from internal coordinates.'''
 
+    # Always requires theta2 >= theta1
+
     if theta2 < theta1:
-        raise Exception("Current implementation requires theta2 >= theta1.")
+        theta1, tau1, theta2, tau2 = theta2, tau2, theta1, tau1
 
     # Get all the points
 
@@ -92,6 +94,58 @@ def get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2):
 
     return R, delta, alpha, eta
 
+def get_screw_transformation_for_strand(strand, distance, direction):
+    '''Get the screw transformation for a strand. The first five atoms
+    of the strand are used to calculate relative parameters.
+    '''
+    # Get internal coordinates
+
+    theta1 = geometry.angle(strand[0] - strand[1], strand[2] - strand[1])
+    theta2 = geometry.angle(strand[1] - strand[2], strand[3] - strand[2])
+    tau1 = geometry.dihedral(strand[0], strand[1], strand[2], strand[3])
+    tau2 = geometry.dihedral(strand[1], strand[2], strand[3], strand[4])
+
+    # Get the ideal parameters
+
+    R, delta, alpha, eta = get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
+
+    # Get the anchor
+
+    anchor = strand[:3] if theta1 < theta2 else strand[1:4]
+
+    # Get the outer cylinder radius
+    
+    R_out = R + D_MEAN * np.cos(min(theta1, theta2) / 2)
+    
+    # Get the screw axis
+   
+    rot_p2_p0 = geometry.rotation_matrix_from_axis_and_angle(anchor[2] - anchor[0], -eta)
+    x = geometry.normalize(np.dot(rot_p2_p0, anchor[1] - (anchor[2] + anchor[0]) / 2))
+    rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
+    z = geometry.normalize(np.dot(rot_x, anchor[2] - anchor[0]))
+    u = (anchor[0] + anchor[2]) / 2 - R * x
+    
+    # If the alpha is zero, do a pure translation
+    
+    if np.absolute(alpha) < 0.001:
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        t = -(distance) * z
+        return M, t
+    
+    # Get the pitch
+    
+    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
+    
+    # Get the screw angle
+    
+    screw_angle = -distance * np.sin(alpha) / R_out
+    if distance == '-':
+        screw_angle = -screw_angle
+    
+    # Get the screw rotation and translation
+    
+    return geometry.get_screw(-z, screw_angle, pitch, u)
+    
 def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, length, num_strands, sheet_type='parallel'):
     '''Generate an ideal beta sheet from three internal coordinates, the length of each strand
     and the number of strands.
@@ -104,10 +158,6 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
 
     strand = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
 
-    # Get the ideal parameters
-
-    R, delta, alpha, eta = get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
-
     # For parallel sheets, use a simple way to generate other strands
     
     if sheet_type == 'parallel':
@@ -115,39 +165,13 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
         PARA_BP_LEN_MEAN = 4.84
         PARA_BP_LEN_STD = 0.24
 
-        # Get the outer cylinder radius
-    
-        R_out = R + D_MEAN * np.cos(theta1 / 2)
-    
-        # Get the screw axis
-   
-        rot_p2_p0 = geometry.rotation_matrix_from_axis_and_angle(strand[2] - strand[0], -eta)
-        x = geometry.normalize(np.dot(rot_p2_p0, strand[1] - (strand[2] + strand[0]) / 2))
-        rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
-        z = geometry.normalize(np.dot(rot_x, strand[2] - strand[0]))
-        u = (strand[0] + strand[2]) / 2 - R * x
-    
-        # Get the pitch
-    
-        pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
-    
-        # Get the screw angle
+        # Get the screw rotation and translation
         # Because the equation used for screw angle calculation will
         # slightly shrink the length of bp vectors and also because
         # the outer part of the sheet should have larger bp vector length,
         # use PARA_BP_LEN_MEAN + PARA_BP_LEN_STD here.
     
-        screw_angle = -(PARA_BP_LEN_MEAN + PARA_BP_LEN_STD) * np.sin(alpha) / R_out 
-    
-        # Get the screw rotation and translation
-    
-        M, t = geometry.get_screw(-z, screw_angle, pitch, u)
-    
-        # If the alpha is zero, do a pure translation
-    
-        if np.absolute(alpha) < 0.001:
-            M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            t = -(PARA_BP_LEN_MEAN + PARA_BP_LEN_STD) * z
+        M, t = get_screw_transformation_for_strand(strand, PARA_BP_LEN_MEAN + PARA_BP_LEN_STD, '+') 
     
         # Generate strands
     
