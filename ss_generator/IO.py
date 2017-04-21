@@ -12,7 +12,7 @@ def save_ca_list(ca_list, pdb_name):
         ca_list = [ca_list]
 
     with open(pdb_name, 'w') as f:
-        index = 0
+        index = 1
         
         for l in ca_list:
             for ca in l:

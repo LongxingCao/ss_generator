@@ -59,10 +59,10 @@ def test_purterb_beta_sheet():
     #rand_sheet = ssg.beta_sheet.build_a_random_sheet_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', 4)
     #ssg.IO.save_ca_list(rand_sheet, 'rand_sheet.pdb')
     
-    built_strand = ssg.beta_sheet.build_a_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+')
-    ssg.IO.save_ca_list(built_strand, 'built_strand.pdb')
+    #built_strand = ssg.beta_sheet.build_a_strand_from_a_reference(ca_list_before_purterb[1], 'parallel', '+')
+    #ssg.IO.save_ca_list(built_strand, 'built_strand.pdb')
 
-    built_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', 2)
+    built_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(ca_list_before_purterb[1], 'parallel', '+', 8)
     ssg.IO.save_ca_list(built_sheet, 'built_sheet.pdb')
     
     #bended_strand = ssg.beta_sheet.bend_strand(ca_list_before_purterb[1], 3, 0.6)

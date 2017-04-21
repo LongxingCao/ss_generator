@@ -105,13 +105,21 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     tau1 = geometry.dihedral(strand[0], strand[1], strand[2], strand[3])
     tau2 = geometry.dihedral(strand[1], strand[2], strand[3], strand[4])
 
+    # Get the direction sign
+
+    d_sign = 1
+    if direction == '+':
+        d_sign *= -1
+    if theta1 > theta2:
+        d_sign *= -1
+
     # Get the ideal parameters
 
     R, delta, alpha, eta = get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
 
     # Get the anchor
 
-    anchor = strand[:3] if theta1 < theta2 else strand[1:4]
+    anchor = strand[:3] if theta1 <= theta2 else strand[1:4]
 
     # Get the outer cylinder radius
     
@@ -134,13 +142,11 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     
     # Get the pitch
     
-    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
+    pitch = d_sign * geometry.pitch_angle_to_pitch(alpha, R_out)
     
     # Get the screw angle
     
-    screw_angle = -distance * np.sin(alpha) / R_out
-    if distance == '-':
-        screw_angle = -screw_angle
+    screw_angle = -d_sign * distance * np.sin(alpha) / R_out
     
     # Get the screw rotation and translation
     
@@ -401,29 +407,57 @@ def get_expected_bp_position_of_three_atoms(ref_atoms, strand_type, direction):
     z = z_abs if direction == '+' else -z_abs
 
     return ref_atoms[1] + np.dot(np.transpose(frame), np.array([x, y, z]))
-   
-def get_expected_bp_positions_of_strand(strand, strand_type, direction):
-    '''Get the expected bp positions of a strand.'''
-    expected_positions = []
+  
+def get_expected_bp_position_of_five_atoms(ref_atoms, strand_type, direction):
+    '''Return the expected bp position defined by five atoms.
+    Two thetas and two taus are used to define a screw transformation.
+    The bp position is calculated by screw transforming the third 
+    reference atom.
+    '''
+    params = get_bp_vector_parameters(strand_type, direction)
+    M, t = get_screw_transformation_for_strand(ref_atoms, params['d_mean'], direction)
+    
+    return np.dot(M, ref_atoms[2]) + t 
 
-    for i in range(len(strand) - 2):
-        expected_positions.append(get_expected_bp_position_of_three_atoms(
-            strand[i:i + 3], strand_type, direction))
-        
-        direction = '-' if direction == '+' else '+'
+def get_expected_bp_positions_of_strand(strand, strand_type, direction, method='five'):
+    '''Get the expected bp positions of a strand.
+    The method argument specifies how many reference atoms are
+    used to build each expected bp position.
+    '''
+    expected_positions = []
+    
+    if method == 'three': 
+        extended_ref = extend_a_strand(strand, True)
+        extended_ref = extend_a_strand(extended_ref, False)
+
+        for i in range(len(extended_ref) - 2):
+            expected_positions.append(get_expected_bp_position_of_three_atoms(
+                extended_ref[i:i + 3], strand_type, direction))
+                
+            direction = '-' if direction == '+' else '+'
+    
+    elif method == 'five':
+        extended_ref = extend_a_strand(strand, True)
+        extended_ref = extend_a_strand(extended_ref, True)
+        extended_ref = extend_a_strand(extended_ref, False)
+        extended_ref = extend_a_strand(extended_ref, False)
+
+        for i in range(len(extended_ref) - 4):
+            expected_positions.append(get_expected_bp_position_of_five_atoms(
+                extended_ref[i:i + 5], strand_type, direction))
+            
+            direction = '-' if direction == '+' else '+'
+
+    else:
+        raise Exception("Invalid method: " + method)
 
     return expected_positions
 
 def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     '''Build a strand from a reference strand.'''
-    # Extend the reference strand at two ends
-    
-    extended_ref = extend_a_strand(ref_strand, True)
-    extended_ref = extend_a_strand(extended_ref, False)
-
     # Get expected positions
     
-    expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
+    expected_positions = get_expected_bp_positions_of_strand(ref_strand, strand_type, direction)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
     
