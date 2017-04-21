@@ -105,13 +105,11 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     tau1 = geometry.dihedral(strand[0], strand[1], strand[2], strand[3])
     tau2 = geometry.dihedral(strand[1], strand[2], strand[3], strand[4])
 
-    # Get the direction sign
+    # Get the direction vector
 
-    d_sign = 1
-    if direction == '+':
-        d_sign *= -1
-    if theta1 > theta2:
-        d_sign *= -1
+    d_v = geometry.normalize(np.cross(strand[1] - strand[2], strand[3] - strand[2]))
+    if direction == '-':
+        d_v = -d_v
 
     # Get the ideal parameters
 
@@ -130,27 +128,31 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     rot_p2_p0 = geometry.rotation_matrix_from_axis_and_angle(anchor[2] - anchor[0], -eta)
     x = geometry.normalize(np.dot(rot_p2_p0, anchor[1] - (anchor[2] + anchor[0]) / 2))
     rot_x = geometry.rotation_matrix_from_axis_and_angle(x, np.pi / 2 - alpha)
+    
     z = geometry.normalize(np.dot(rot_x, anchor[2] - anchor[0]))
+    if np.dot(d_v, z) < 0:
+        z = -z
+    
     u = (anchor[0] + anchor[2]) / 2 - R * x
     
     # If the alpha is zero, do a pure translation
     
     if np.absolute(alpha) < 0.001:
         M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        t = -(distance) * z
+        t = distance * z
         return M, t
     
     # Get the pitch
     
-    pitch = d_sign * geometry.pitch_angle_to_pitch(alpha, R_out)
+    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
     
     # Get the screw angle
     
-    screw_angle = -d_sign * distance * np.sin(alpha) / R_out
+    screw_angle = -distance * np.sin(alpha) / R_out
     
     # Get the screw rotation and translation
     
-    return geometry.get_screw(-z, screw_angle, pitch, u)
+    return geometry.get_screw(z, screw_angle, pitch, u)
     
 def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, length, num_strands, sheet_type='parallel'):
     '''Generate an ideal beta sheet from three internal coordinates, the length of each strand
@@ -496,16 +498,16 @@ def build_a_sheet_from_a_reference(ref_strand, strand_type, direction, num_stran
 
     return sheet
 
-def bend_strand(strand, bend_position, bend_coef):
-    '''Bend a strand at a given position by changing the local screw radius. 
+def change_radius_local(strand, bend_position, bend_coef):
+    '''Chane the local screw radius. 
     The new screw radius will be the old one times bend_coef. The value of
     delta should also be adjusted.
     '''
     return perturb_strand_local(strand, bend_position, 
             lambda x : (x[0] * bend_coef, 2 * np.arctan(np.tan(x[1] / 2) / bend_coef), x[2], x[3]))
 
-def twist_strand(strand, twist_position, alpha_change):
-    '''Twist a strand at a given position by shift the local alpha.
+def change_alpha_local(strand, twist_position, alpha_change):
+    '''Shift the local alpha.
     The value of delta should also be adjusted.
     '''
     return perturb_strand_local(strand, twist_position,
@@ -516,7 +518,6 @@ def perturb_strand_local(strand, position, perturb_function):
     '''Perturb a strand at a given position according to a 
     perturb_function.
     '''
-
     # get internal coordinates
 
     ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(strand)
@@ -544,4 +545,40 @@ def perturb_strand_local(strand, position, perturb_function):
             ds[i - 1], thetas[i - 2], taus[i - 3]))
 
     return new_strand
+
+def bend_strand(strand, position, bend_angle):
+    '''Bend a strand at a given position.'''
+    
+    def bend_two_thetas(theta1, tau1, theta2, tau2):
+        if theta1 > theta2:
+            return theta1 + bend_angle / 2, tau1, theta2 - bend_angle / 2, tau2
+        else:
+            return theta1 - bend_angle / 2, tau1, theta2 + bend_angle / 2, tau2
+
+    return change_strand_internal_coord_local(strand, position, bend_two_thetas)
+
+def change_strand_internal_coord_local(strand, position, perturb_function):
+    '''Perturb the internal coordinates of a strand at 
+    position and position + 1 according to a perturb_function.
+    '''
+    # get internal coordinates
+
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(strand)
+
+    # perturb internal coordinates
+
+    thetas[position], taus[position], thetas[position + 1], taus[position + 1] = \
+            perturb_function(thetas[position], taus[position], thetas[position + 1], taus[position + 1])
+
+    # return a new strand
+
+    new_strand = strand[:3]
+
+    for i in range(3, len(strand)):
+        new_strand.append(geometry.cartesian_coord_from_internal_coord(
+            new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
+            ds[i - 1], thetas[i - 2], taus[i - 3]))
+
+    return new_strand
+
 
