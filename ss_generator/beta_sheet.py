@@ -466,19 +466,26 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
-    
+    # Shift the position along the reference direction 
+
     center_of_mass_old = sum(expected_positions) / len(expected_positions)
 
     i = 1
     while i < len(expected_positions) - 1:
+        tt_ref = extended_ref[i] - (extended_ref[i - 1] + extended_ref[i + 1]) / 2
+
         v = expected_positions[i + 1] - expected_positions[i - 1]
         vv = geometry.normalize(v)
+        tt_ref_oth = geometry.normalize(tt_ref - np.dot(tt_ref, vv))
+
         center = (expected_positions[i - 1] + expected_positions[i + 1]) / 2
         u = expected_positions[i] - center
-        t = geometry.normalize(u - np.dot(u, vv) * vv)
-        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2)
+        t = u - np.dot(u, vv) * vv
+        t_rest = t - np.dot(t, tt_ref_oth) * tt_ref_oth
+        
+        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2 - np.linalg.norm(t_rest) ** 2)
 
-        expected_positions[i] = center + l * t
+        expected_positions[i] = center + t_rest + l * tt_ref_oth
 
         i += 2
 
