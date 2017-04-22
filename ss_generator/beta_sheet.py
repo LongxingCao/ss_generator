@@ -556,13 +556,20 @@ def perturb_strand_local(strand, position, perturb_function):
 def bend_strand(strand, position, bend_angle):
     '''Bend a strand at a given position.'''
     
-    def bend_two_thetas(theta1, tau1, theta2, tau2):
+    def bend_two_thetas(x):
+        theta1, tau1, theta2, tau2 = x
         if theta1 > theta2:
             return theta1 + bend_angle / 2, tau1, theta2 - bend_angle / 2, tau2
         else:
             return theta1 - bend_angle / 2, tau1, theta2 + bend_angle / 2, tau2
 
     return change_strand_internal_coord_local(strand, position, bend_two_thetas)
+
+def twist_strand(strand, position, twist_angle):
+    '''Twist a strand at a given position.'''
+
+    return change_strand_internal_coord_local(strand, position, 
+            lambda x : (x[0], x[1] + twist_angle, x[2], x[3] + twist_angle))
 
 def change_strand_internal_coord_local(strand, position, perturb_function):
     '''Perturb the internal coordinates of a strand at 
@@ -575,7 +582,7 @@ def change_strand_internal_coord_local(strand, position, perturb_function):
     # perturb internal coordinates
 
     thetas[position], taus[position], thetas[position + 1], taus[position + 1] = \
-            perturb_function(thetas[position], taus[position], thetas[position + 1], taus[position + 1])
+            perturb_function((thetas[position], taus[position], thetas[position + 1], taus[position + 1]))
 
     # return a new strand
 
