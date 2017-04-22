@@ -2,6 +2,7 @@
 
 import pytest
 import numpy as np
+np.seterr(all='raise')
 
 import ss_generator as ssg
 
@@ -83,12 +84,25 @@ def test_perturb_alpha_helix():
     
     ssg.IO.save_ca_list(ca_list_before, "helix_before_perturb.pdb")
    
-    random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
-    ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
+    #random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
+    #ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
 
-    phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
-    ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
+    #phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
+    #ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
 
-    ca_to_twist = random_perturbed_ca_list
-    twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
-    ssg.IO.save_ca_list(twisted_ca_list, "helix_twisted.pdb")
+    #ca_to_twist = random_perturbed_ca_list
+    #twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
+    #ssg.IO.save_ca_list(twisted_ca_list, "helix_twisted.pdb")
+
+def test_thread_bb():
+    print("test thread bb.")
+   
+    n = 10
+    ds = n * [3.81]
+    thetas = (n - 1) * [np.radians(91.8)]
+    taus = (n - 2) * [np.radians(49.5)]
+
+    ca_list = ssg.basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
+    ssg.IO.save_ca_list(ca_list, 'straight_helix.pdb')
+    res_list = ssg.alpha_helix.thread_backbone_for_helix(ca_list)
+    ssg.IO.save_residue_list(res_list, 'straight_helix_bb.pdb')

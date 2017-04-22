@@ -326,4 +326,26 @@ def twist_minimum_unit(thetas, taus, M_init, axis, pitch_angle, omega):
 
     return thetas[1:], taus
 
+def thread_backbone_for_helix(ca_list):
+    '''Thread backbone atoms for a ca list of a helix.
+    Return a list of residue dictionaries.
+    '''
 
+    # Get the axis of the begining part of the helix
+
+    frame1 = geometry.create_frame_from_three_points(ca_list[0], ca_list[1], ca_list[2])
+    frame2 = geometry.create_frame_from_three_points(ca_list[1] , ca_list[2], ca_list[3])
+
+    axis = geometry.rotation_matrix_to_axis_and_angle(
+            np.dot(np.transpose(frame2), frame1))[0]
+
+    # Let the C atom be in the plan spaned by the 
+    # axis and the vector from the first Ca to the second Ca. 
+
+    x = geometry.normalize(ca_list[1] - ca_list[0])
+    y = geometry.normalize(axis - np.dot(axis, x) * x)
+
+    params = basic.get_peptide_bond_parameters()
+    initial_c_direction = np.cos(params['theta_c']) * x + np.sin(params['theta_c']) * y
+
+    return basic.thread_ca_list_forward(ca_list, initial_c_direction, z_sign=-1)
