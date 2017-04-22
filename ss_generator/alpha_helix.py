@@ -327,25 +327,39 @@ def twist_minimum_unit(thetas, taus, M_init, axis, pitch_angle, omega):
     return thetas[1:], taus
 
 def thread_backbone_for_helix(ca_list):
-    '''Thread backbone atoms for a ca list of a helix.
+    '''Thread backbone atoms for a ca list of a helix using
+    the method and parameters from the G. Grigoryan, W. F. DeGrado paper.
     Return a list of residue dictionaries.
     '''
+    # Make the N termial residue
 
-    # Get the axis of the begining part of the helix
+    residue_list = [{'ca': ca_list[0],
+            'n': geometry.cartesian_coord_from_internal_coord(ca_list[2], 
+                ca_list[1], ca_list[0], 1.45, np.radians(95.0), np.radians(65.0)),
+            'c': geometry.cartesian_coord_from_internal_coord(ca_list[2],
+                ca_list[1], ca_list[0], 1.52, np.radians(21.0), np.radians(-79.0))}]
 
-    frame1 = geometry.create_frame_from_three_points(ca_list[0], ca_list[1], ca_list[2])
-    frame2 = geometry.create_frame_from_three_points(ca_list[1] , ca_list[2], ca_list[3])
+    # Make middle residues
 
-    axis = geometry.rotation_matrix_to_axis_and_angle(
-            np.dot(np.transpose(frame2), frame1))[0]
+    for i in range(1, len(ca_list) - 1):
+        residue_list.append({'ca': ca_list[i],
+            'n': geometry.cartesian_coord_from_internal_coord(ca_list[i - 1],
+                ca_list[i + 1], ca_list[i], 1.45, np.radians(95.0), np.radians(14.0)),
+            'c': geometry.cartesian_coord_from_internal_coord(ca_list[i + 1],
+                ca_list[i - 1], ca_list[i], 1.52, np.radians(104.0), np.radians(16.0))})
 
-    # Let the C atom be in the plan spaned by the 
-    # axis and the vector from the first Ca to the second Ca. 
+    # Make the N terminal residue
 
-    x = geometry.normalize(ca_list[1] - ca_list[0])
-    y = geometry.normalize(axis - np.dot(axis, x) * x)
+    residue_list.append({'ca': ca_list[-1],
+        'n': geometry.cartesian_coord_from_internal_coord(ca_list[-3],
+            ca_list[-2], ca_list[-1], 1.45, np.radians(15.0), np.radians(-56.0)),
+        'c': geometry.cartesian_coord_from_internal_coord(ca_list[-3],
+            ca_list[-2], ca_list[-1], 1.52, np.radians(104.0), np.radians(67.0))})
 
-    params = basic.get_peptide_bond_parameters()
-    initial_c_direction = np.cos(params['theta_c']) * x + np.sin(params['theta_c']) * y
+    # Buil O atoms
 
-    return basic.thread_ca_list_forward(ca_list, initial_c_direction, z_sign=-1)
+    for i in range(1, len(ca_list)):
+        residue_list[i - 1]['o'] = basic.get_o_for_peptide_bond(
+                residue_list[i - 1]['c'], residue_list[i]['n'], residue_list[i]['ca'])
+
+    return residue_list

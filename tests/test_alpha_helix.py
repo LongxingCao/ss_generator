@@ -97,7 +97,7 @@ def test_perturb_alpha_helix():
 def test_thread_bb():
     print("test thread bb.")
    
-    n = 10
+    n = 100
     ds = n * [3.81]
     thetas = (n - 1) * [np.radians(91.8)]
     taus = (n - 2) * [np.radians(49.5)]
