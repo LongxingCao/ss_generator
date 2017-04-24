@@ -42,7 +42,7 @@ def test_purterb_beta_sheet():
     theta2 = np.radians(123.9 - 5)
     tau2 = np.radians(185)
 
-    ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 20, 5)
+    ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 10, 5)
     ssg.IO.save_ca_list(ca_list_before_purterb, "sheet_before_purterb.pdb")
     res_list_before_purterb = ssg.beta_sheet.thread_backbone_for_sheet(ca_list_before_purterb, 'parallel')
     ssg.IO.save_residue_list(res_list_before_purterb, "sheet_before_purterb_bb.pdb")
@@ -77,3 +77,8 @@ def test_purterb_beta_sheet():
     #ssg.IO.save_ca_list(twisted_strand, 'twist_strand.pdb')
     #twisted_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(twisted_strand, 'parallel', '+', 2)
     #ssg.IO.save_ca_list(twisted_sheet, 'twist_sheet.pdb')
+
+    #random_perturbed_strand = ssg.beta_sheet.random_perturb_strand(ca_list_before_purterb[0], 'parallel', 0.01)
+    #ssg.IO.save_ca_list(random_perturbed_strand, 'random_perturb_strand.pdb')
+    #random_perturbed_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(random_perturbed_strand, 'parallel', '+', 3)
+    #ssg.IO.save_ca_list(random_perturbed_sheet, 'random_perturb_sheet.pdb')

@@ -596,6 +596,40 @@ def change_strand_internal_coord_local(strand, position, perturb_function):
 
     return new_strand
 
+def random_perturb_strand(strand, strand_type, perturb_coef):
+    '''Randomly perturb a strand.'''
+    # get internal coordinates
+
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(strand)
+
+    # Get parameters for the strand
+
+    params = get_strand_parameters(strand_type)
+
+    # Perturb the internal coordinates
+
+    for i in range(len(thetas)):
+        thetas[i] = thetas[i] + np.random.normal(0, perturb_coef * params['angle_std'])
+
+    for i in range(len(taus)):
+        taus[i] = taus[i] + np.random.normal(0, perturb_coef * params['torsion_std'])
+
+    # return a new strand
+
+    new_strand = strand[:3]
+
+    for i in range(3, len(strand)):
+        new_strand.append(geometry.cartesian_coord_from_internal_coord(
+            new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
+            ds[i - 1], thetas[i - 2], taus[i - 3]))
+
+    com_old = sum(strand) / len(strand)
+    com_new = sum(new_strand) / len(new_strand)
+
+    new_strand = [p + com_old - com_new for p in new_strand]
+
+    return new_strand
+
 def thread_backbone_for_strand(ca_list, strand_type):
     '''Thread backbone atoms for a ca list of a beta strand.'''
     # Make the N termial residue
