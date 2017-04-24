@@ -115,6 +115,14 @@ def get_screw_transformation_for_strand(strand, distance, direction):
 
     R, delta, alpha, eta = get_ideal_parameters_from_internal_coordinates(theta1, tau1, theta2, tau2)
 
+    # If theta1 == theta2 or the alpha is zero, do a pure translation
+    
+    if np.absolute(theta1 - theta2) < 0.001 \
+      or np.absolute(alpha) < 0.001 or np.absolute(alpha - np.pi) < 0.001:
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        t = distance * d_v
+        return M, t
+    
     # Get the anchor
 
     anchor = strand[:3] if theta1 <= theta2 else strand[1:4]
@@ -134,13 +142,6 @@ def get_screw_transformation_for_strand(strand, distance, direction):
         z = -z
     
     u = (anchor[0] + anchor[2]) / 2 - R * x
-    
-    # If the alpha is zero, do a pure translation
-    
-    if np.absolute(alpha) < 0.001 or np.absolute(alpha - np.pi) < 0.001:
-        M = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        t = distance * z
-        return M, t
     
     # Get the pitch
     
@@ -180,14 +181,14 @@ def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, ta
         # use PARA_BP_LEN_MEAN + PARA_BP_LEN_STD here.
     
         M, t = get_screw_transformation_for_strand(strand, PARA_BP_LEN_MEAN + PARA_BP_LEN_STD, '+') 
-    
+
         # Generate strands
     
         sheet = [strand]
         
         for i in range(1, num_strands):
             sheet.append([np.dot(M, ca) + t for ca in sheet[i - 1]])
-    
+   
         return sheet
 
     else:
@@ -595,4 +596,58 @@ def change_strand_internal_coord_local(strand, position, perturb_function):
 
     return new_strand
 
+def thread_backbone_for_strand(ca_list, strand_type):
+    '''Thread backbone atoms for a ca list of a beta strand.'''
+    # Make the N termial residue
 
+    residue_list = [{'ca': ca_list[0],
+            'n': geometry.cartesian_coord_from_internal_coord(ca_list[2], 
+                ca_list[1], ca_list[0], 1.45, 
+                np.radians(123.1) if strand_type == 'parallel' else np.radians(125.2), 
+                np.radians(-136.0) if strand_type == 'parallel' else np.radians(-116.2)),
+            'c': geometry.cartesian_coord_from_internal_coord(ca_list[2],
+                ca_list[1], ca_list[0], 1.52, 
+                np.radians(20.8) if strand_type == 'parallel' else np.radians(20.8), 
+                np.radians(-93.0) if strand_type == 'parallel' else np.radians(-94.4))}]
+
+    # Make middle residues
+
+    for i in range(1, len(ca_list) - 1):
+        residue_list.append({'ca': ca_list[i],
+            'n': geometry.cartesian_coord_from_internal_coord(ca_list[i - 1],
+                ca_list[i + 1], ca_list[i], 1.45, 
+                np.radians(120.8) if strand_type == 'parallel' else np.radians(121.9), 
+                np.radians(16.4) if strand_type == 'parallel' else np.radians(15.7)),
+            'c': geometry.cartesian_coord_from_internal_coord(ca_list[i + 1],
+                ca_list[i - 1], ca_list[i], 1.52, 
+                np.radians(114.0) if strand_type == 'parallel' else np.radians(115.2), 
+                np.radians(-20.0) if strand_type == 'parallel' else np.radians(-17.2))})
+
+    # Make the N terminal residue
+
+    residue_list.append({'ca': ca_list[-1],
+        'n': geometry.cartesian_coord_from_internal_coord(ca_list[-3],
+            ca_list[-2], ca_list[-1], 1.45, 
+            np.radians(15.4) if strand_type == 'parallel' else np.radians(15.2), 
+            np.radians(99.6) if strand_type == 'parallel' else np.radians(100.5)),
+        'c': geometry.cartesian_coord_from_internal_coord(ca_list[-3],
+            ca_list[-2], ca_list[-1], 1.52, 
+            np.radians(113.5) if strand_type == 'parallel' else np.radians(112.8), 
+            np.radians(11.6) if strand_type == 'parallel' else np.radians(-8.5))})
+
+    # Buil O atoms
+
+    for i in range(1, len(ca_list)):
+        residue_list[i - 1]['o'] = basic.get_o_for_peptide_bond(
+                residue_list[i - 1]['c'], residue_list[i]['n'], residue_list[i]['ca'])
+
+    return residue_list
+
+def thread_backbone_for_sheet(ca_list, sheet_type):
+    '''Thread backbone atoms for a ca list of a beta sheet.'''
+    sheet_list = []
+
+    for strand in ca_list:
+        sheet_list.append(thread_backbone_for_strand(strand, sheet_type))
+
+    return sheet_list

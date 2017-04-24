@@ -38,12 +38,14 @@ def test_purterb_beta_sheet():
     print("test purterb beta sheet.")
 
     theta1 = np.radians(123.9 + 5)
-    tau1 = np.radians(185)
+    tau1 = np.radians(195)
     theta2 = np.radians(123.9 - 5)
     tau2 = np.radians(185)
 
     ca_list_before_purterb = ssg.beta_sheet.generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, 20, 5)
     ssg.IO.save_ca_list(ca_list_before_purterb, "sheet_before_purterb.pdb")
+    res_list_before_purterb = ssg.beta_sheet.thread_backbone_for_sheet(ca_list_before_purterb, 'parallel')
+    ssg.IO.save_residue_list(res_list_before_purterb, "sheet_before_purterb_bb.pdb")
 
     #rand_strand = None
     #while rand_strand is None:
@@ -71,7 +73,7 @@ def test_purterb_beta_sheet():
     #bended_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(bended_strand, 'parallel', '+', 2)
     #ssg.IO.save_ca_list(bended_sheet, 'bend_sheet.pdb')
 
-    twisted_strand = ssg.beta_sheet.twist_strand(ca_list_before_purterb[1], 5, np.radians(-5))
-    ssg.IO.save_ca_list(twisted_strand, 'twist_strand.pdb')
-    twisted_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(twisted_strand, 'parallel', '+', 2)
-    ssg.IO.save_ca_list(twisted_sheet, 'twist_sheet.pdb')
+    #twisted_strand = ssg.beta_sheet.twist_strand(ca_list_before_purterb[1], 5, np.radians(-5))
+    #ssg.IO.save_ca_list(twisted_strand, 'twist_strand.pdb')
+    #twisted_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(twisted_strand, 'parallel', '+', 2)
+    #ssg.IO.save_ca_list(twisted_sheet, 'twist_sheet.pdb')
