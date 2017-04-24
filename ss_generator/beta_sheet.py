@@ -554,7 +554,7 @@ def perturb_strand_local(strand, position, perturb_function):
 
     return new_strand
 
-def bend_strand(strand, position, bend_angle):
+def bend_strand(strand, bend_angle, position=None):
     '''Bend a strand at a given position.'''
     
     def bend_two_thetas(x):
@@ -564,13 +564,21 @@ def bend_strand(strand, position, bend_angle):
         else:
             return theta1 - bend_angle / 2, tau1, theta2 + bend_angle / 2, tau2
 
-    return change_strand_internal_coord_local(strand, position, bend_two_thetas)
+    if position:
+        return change_strand_internal_coord_local(strand, position, bend_two_thetas)
+    
+    else:
+        return change_strand_internal_coord_global(strand, bend_two_thetas)
 
-def twist_strand(strand, position, twist_angle):
+def twist_strand(strand, twist_angle, position=None):
     '''Twist a strand at a given position.'''
-
-    return change_strand_internal_coord_local(strand, position, 
-            lambda x : (x[0], x[1] + twist_angle, x[2], x[3] + twist_angle))
+    if position:
+        return change_strand_internal_coord_local(strand, position, 
+                lambda x : (x[0], x[1] + twist_angle, x[2], x[3] + twist_angle))
+    
+    else:
+        return change_strand_internal_coord_global(strand,  
+                lambda x : (x[0], x[1] + twist_angle, x[2], x[3] + twist_angle))
 
 def change_strand_internal_coord_local(strand, position, perturb_function):
     '''Perturb the internal coordinates of a strand at 
@@ -593,6 +601,46 @@ def change_strand_internal_coord_local(strand, position, perturb_function):
         new_strand.append(geometry.cartesian_coord_from_internal_coord(
             new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
             ds[i - 1], thetas[i - 2], taus[i - 3]))
+
+    return new_strand
+
+def change_strand_internal_coord_global(strand, perturb_function):
+    '''Perturb the internal coordinates of a strand according 
+    to a perturb_function.
+    '''
+    # get internal coordinates
+
+    ds, thetas, taus = basic.get_internal_coordinates_from_ca_list(strand)
+    
+    # append two thetas and taus
+
+    for i in range(2):
+        thetas.append(thetas[-2])
+        taus.append(taus[-2])
+
+    # perturb internal coordinates
+
+    position = 0
+    while position < len(strand) - 2:
+
+        thetas[position], taus[position], thetas[position + 1], taus[position + 1] = \
+                perturb_function((thetas[position], taus[position], thetas[position + 1], taus[position + 1]))
+        
+        position += 2
+
+    # return a new strand
+
+    new_strand = strand[:3]
+
+    for i in range(3, len(strand)):
+        new_strand.append(geometry.cartesian_coord_from_internal_coord(
+            new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
+            ds[i - 1], thetas[i - 2], taus[i - 3]))
+
+    com_old = sum(strand) / len(strand)
+    com_new = sum(new_strand) / len(new_strand)
+
+    new_strand = [p + com_old - com_new for p in new_strand]
 
     return new_strand
 
