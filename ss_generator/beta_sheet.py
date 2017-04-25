@@ -678,7 +678,8 @@ def change_strand_internal_coord_global(strand, perturb_function):
 
     # return a new strand
 
-    new_strand = strand[:3]
+    new_strand = strand[:2]
+    new_strand.append(geometry.change_angle(strand[0], strand[1], strand[2], thetas[0]))
 
     for i in range(3, len(strand)):
         new_strand.append(geometry.cartesian_coord_from_internal_coord(
