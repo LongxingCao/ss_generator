@@ -80,6 +80,17 @@ def cartesian_coord_from_internal_coord(p1, p2, p3, d, theta, tau):
 
     return p3 + d * np.dot(M2, np.dot(M1, normalize(p3 - p2)))
 
+def change_angle(p1, p2, p3, theta):
+    '''Change the angle between points p1, p2 and p3 to theta.
+    Keep p1, p2 and the plane formed by p1, p2 and p3 fixed.
+    Return the new position of p3.
+    '''
+    x = normalize(p1 - p2)
+    v = p3 - p2
+    y = normalize(v - np.dot(v, x) * x)
+
+    return p2 + np.linalg.norm(v) * (np.cos(theta) * x + np.sin(theta) * y) 
+
 def rotation_matrix_to_superimpose_two_vectors(v1, v2, theta=0):
     '''Get a rotation matrix that superimpose v1 to v2.
     Because there are infinite number of matrices that can do

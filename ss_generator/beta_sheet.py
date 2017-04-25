@@ -469,30 +469,38 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
 
     # Adjust the atoms on even positions, such that the distances between them are
     # within a limit
-    ANGLE_MAX = np.radians(140)
-    MAX_DISTANCE = 2 * D_MEAN * np.sin(ANGLE_MAX / 2)
-    ANGLE_MIN = np.radians(100)
-    MIN_DISTANCE = 2 * D_MEAN * np.sin(ANGLE_MIN / 2)
-    
-    i = 0
-    while i < len(expected_positions) - 2:
+    PP_ANGLE_MAX = np.radians(140)
+    MAX_DISTANCE = 2 * D_MEAN * np.sin(PP_ANGLE_MAX / 2)
+    PP_ANGLE_MIN = np.radians(100)
+    MIN_DISTANCE = 2 * D_MEAN * np.sin(PP_ANGLE_MIN / 2)
+   
+    PP2_ANGLE_MIN = np.radians(150)
+
+    for i in range(0, len(expected_positions) - 2, 2):
         v = expected_positions[i + 2] - expected_positions[i]
         vv = geometry.normalize(v)
-        
+       
+        # Adjust distance
+
         if np.linalg.norm(v) > MAX_DISTANCE:
             expected_positions[i + 2] = expected_positions[i] + MAX_DISTANCE * vv
        
         elif np.linalg.norm(v) < MIN_DISTANCE:
             expected_positions[i + 2] = expected_positions[i] + MIN_DISTANCE * vv
 
-        i += 2
+        # Adjust angle
+
+        if i > 0 and geometry.angle(expected_positions[i + 2] - expected_positions[i],
+                expected_positions[i - 2] - expected_positions[i]) < PP2_ANGLE_MIN:
+            
+            expected_positions[i + 2] = geometry.change_angle(expected_positions[i - 2],
+                    expected_positions[i], expected_positions[i + 2], PP2_ANGLE_MIN)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
 
     center_of_mass_old = sum(expected_positions) / len(expected_positions)
 
-    i = 1
-    while i < len(expected_positions) - 1:
+    for i in range(1, len(expected_positions) - 1, 2):
         v = expected_positions[i + 1] - expected_positions[i - 1]
         vv = geometry.normalize(v)
 
@@ -503,12 +511,37 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
         l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2)
         expected_positions[i] = center + l * geometry.normalize(t)
 
-        i += 2
+    # Functions to the strand 
+
+    def get_shift_dihedral(strand, pos):
+        '''Get the shift dihedral of a strand at a given position.'''
+        return geometry.dihedral(strand[pos], strand[pos + 1],
+                (strand[pos + 1] + strand[pos + 3]) / 2, strand[pos + 2])
+
+    def set_shift_dihedral(strand, pos, tau):
+        '''Get the shift dihedral of a strand at a given position.
+        Return the new coordinate of the atom at pos + 2.
+        '''
+        d = np.linalg.norm(strand[pos + 2] - (strand[pos + 1] + strand[pos + 3]) / 2)
+        return geometry.cartesian_coord_from_internal_coord(strand[pos],
+                strand[pos + 1], (strand[pos + 1] + strand[pos + 3]) / 2,
+                d, np.pi / 2, tau)
+
+    # Smooth the strand 3 times
+
+    for i in range(3):    
+        for j in range(1, len(expected_positions) - 4, 2):
+            
+            tau = np.mean([get_shift_dihedral(expected_positions, j), 
+                get_shift_dihedral(expected_positions, j + 2)])
+
+            expected_positions[j + 2] = set_shift_dihedral(expected_positions, j, tau)
+            expected_positions[j + 4] = set_shift_dihedral(expected_positions, j + 2, tau)
 
     center_of_mass_new = sum(expected_positions) / len(expected_positions)
 
-    for i in range(len(expected_positions)):
-        expected_positions[i] += center_of_mass_old - center_of_mass_new
+    expected_positions = [x + center_of_mass_old - center_of_mass_new 
+            for x in expected_positions]
 
     return expected_positions[:len(ref_strand)] 
 

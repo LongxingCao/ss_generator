@@ -70,7 +70,7 @@ def test_purterb_beta_sheet():
     
     bended_strand = ssg.beta_sheet.bend_strand(ca_list_before_purterb[0], np.radians(10))
     ssg.IO.save_ca_list(bended_strand, 'bend_strand.pdb')
-    bended_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(bended_strand, 'parallel', '+', 5)
+    bended_sheet = ssg.beta_sheet.build_a_sheet_from_a_reference(bended_strand, 'parallel', '+', 20)
     ssg.IO.save_ca_list(bended_sheet, 'bend_sheet.pdb')
 
     #twisted_strand = ssg.beta_sheet.twist_strand(ca_list_before_purterb[0], np.radians(-5))
