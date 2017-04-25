@@ -145,11 +145,12 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     
     # Get the pitch
     
-    pitch = geometry.pitch_angle_to_pitch(alpha, R_out)
+    pitch = np.absolute(geometry.pitch_angle_to_pitch(alpha, R_out))
     
     # Get the screw angle
     
-    screw_angle = -distance * np.sin(alpha) / R_out
+    screw_angle = -distance * np.sin(alpha) / R_out if alpha < np.pi / 2 \
+            else distance * np.sin(alpha) / R_out
     
     # Get the screw rotation and translation
     
@@ -466,27 +467,41 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     
     expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
 
+    # Adjust the atoms on even positions, such that the distances between them are
+    # within a limit
+    ANGLE_MAX = np.radians(140)
+    MAX_DISTANCE = 2 * D_MEAN * np.sin(ANGLE_MAX / 2)
+    ANGLE_MIN = np.radians(100)
+    MIN_DISTANCE = 2 * D_MEAN * np.sin(ANGLE_MIN / 2)
+    
+    i = 0
+    while i < len(expected_positions) - 2:
+        v = expected_positions[i + 2] - expected_positions[i]
+        vv = geometry.normalize(v)
+        
+        if np.linalg.norm(v) > MAX_DISTANCE:
+            expected_positions[i + 2] = expected_positions[i] + MAX_DISTANCE * vv
+       
+        elif np.linalg.norm(v) < MIN_DISTANCE:
+            expected_positions[i + 2] = expected_positions[i] + MIN_DISTANCE * vv
+
+        i += 2
+
     # Adjust the expected positions such that the bond lengths are the ideal value
-    # Shift the position along the reference direction 
 
     center_of_mass_old = sum(expected_positions) / len(expected_positions)
 
     i = 1
     while i < len(expected_positions) - 1:
-        tt_ref = extended_ref[i] - (extended_ref[i - 1] + extended_ref[i + 1]) / 2
-
         v = expected_positions[i + 1] - expected_positions[i - 1]
         vv = geometry.normalize(v)
-        tt_ref_oth = geometry.normalize(tt_ref - np.dot(tt_ref, vv))
 
         center = (expected_positions[i - 1] + expected_positions[i + 1]) / 2
         u = expected_positions[i] - center
         t = u - np.dot(u, vv) * vv
-        t_rest = t - np.dot(t, tt_ref_oth) * tt_ref_oth
         
-        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2 - np.linalg.norm(t_rest) ** 2)
-
-        expected_positions[i] = center + t_rest + l * tt_ref_oth
+        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2)
+        expected_positions[i] = center + l * geometry.normalize(t)
 
         i += 2
 
