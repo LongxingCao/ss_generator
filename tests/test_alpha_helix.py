@@ -83,16 +83,24 @@ def test_perturb_alpha_helix():
         ca += np.array([10, 0, 0])
     
     ssg.IO.save_ca_list(ca_list_before, "helix_before_perturb.pdb")
+    ca_list_before_bb = ssg.alpha_helix.thread_backbone_for_helix(ca_list_before)
+    ssg.IO.save_residue_list(ca_list_before_bb, 'helix_before_perturb_bb.pdb')
    
-    #random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
-    #ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
+    random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
+    ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
+    random_perturbed_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(random_perturbed_ca_list)
+    ssg.IO.save_residue_list(random_perturbed_ca_list_bb, 'helix_random_perturb_bb.pdb')
 
-    #phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
-    #ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
+    phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
+    ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
+    phase_shifted_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(phase_shifted_ca_list)
+    ssg.IO.save_residue_list(phase_shifted_ca_list_bb, 'helix_phase_shifted_bb.pdb')
 
-    #ca_to_twist = random_perturbed_ca_list
-    #twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
-    #ssg.IO.save_ca_list(twisted_ca_list, "helix_twisted.pdb")
+    ca_to_twist = random_perturbed_ca_list
+    twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
+    ssg.IO.save_ca_list(twisted_ca_list, "helix_twisted.pdb")
+    twisted_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(twisted_ca_list)
+    ssg.IO.save_residue_list(twisted_ca_list_bb, 'helix_twisted_ca_list_bb.pdb')
 
 def test_thread_bb():
     print("test thread bb.")

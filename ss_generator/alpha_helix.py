@@ -183,16 +183,10 @@ def randomize_a_helix(ca_list, ratio):
 
     perturbed_ca_list = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
 
-    # Rotate and translate the perturbed helix, such that the first frame
-    # coincide with its original frame
+    # Superimpose the perturbed ca list to the old list
 
-    M = np.transpose(geometry.create_frame_from_three_points(
-        ca_list[0], ca_list[1], ca_list[2]))
-    t = np.mean(ca_list, axis=0) - np.mean(perturbed_ca_list, axis=0)
-
-    for i in range(len(perturbed_ca_list)):
-        perturbed_ca_list[i] = np.dot(M, 
-                perturbed_ca_list[i]) + t
+    M, t = geometry.get_superimpose_transformation(perturbed_ca_list, ca_list)
+    perturbed_ca_list = [ np.dot(M, p) + t for p in perturbed_ca_list]
 
     return perturbed_ca_list
 
@@ -263,12 +257,8 @@ def twist_helix(ca_list, axis, pitch_angle, omega, ratio):
 
     new_ca_list = basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
     
-    M_rot = geometry.create_frame_from_three_points(
-            ca_list[0], ca_list[1], ca_list[2])
-    t = np.mean(ca_list, axis=0) - np.mean(new_ca_list, axis=0)
-
-    for i in range(len(new_ca_list)):
-        new_ca_list[i] = np.dot(M_rot, new_ca_list[i]) + t
+    M, t = geometry.get_superimpose_transformation(new_ca_list, ca_list)
+    new_ca_list = [np.dot(M, p) + t for p in new_ca_list]
 
     return new_ca_list
 
