@@ -143,6 +143,6 @@ def get_superimpose_transformation(P1, P2):
     if (np.linalg.det(V) * np.linalg.det(W)) < 0.0:
         V[:, -1] = -V[:, -1]
 
-    M = np.array(np.dot(V, W))
+    M = np.transpose(np.array(np.dot(V, W)))
 
     return M, com2 - np.dot(M, com1)
