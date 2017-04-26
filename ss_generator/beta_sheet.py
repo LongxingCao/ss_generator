@@ -466,6 +466,7 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     # Get expected positions
     
     expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
+    expected_positions_old = expected_positions[:]
 
     # Adjust the atoms on even positions, such that the distances between them are
     # within a limit
@@ -497,8 +498,6 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
                     expected_positions[i], expected_positions[i + 2], PP2_ANGLE_MIN)
 
     # Adjust the expected positions such that the bond lengths are the ideal value
-
-    center_of_mass_old = sum(expected_positions) / len(expected_positions)
 
     for i in range(1, len(expected_positions) - 1, 2):
         v = expected_positions[i + 1] - expected_positions[i - 1]
@@ -538,10 +537,11 @@ def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
             expected_positions[j + 2] = set_shift_dihedral(expected_positions, j, tau)
             expected_positions[j + 4] = set_shift_dihedral(expected_positions, j + 2, tau)
 
-    center_of_mass_new = sum(expected_positions) / len(expected_positions)
+    # Superimpose the adjusted expected_positions to the old positions
 
-    expected_positions = [x + center_of_mass_old - center_of_mass_new 
-            for x in expected_positions]
+    M, t = geometry.get_superimpose_transformation(expected_positions, expected_positions_old)
+
+    expected_positions = [np.dot(M, x) + t for x in expected_positions]
 
     return expected_positions[:len(ref_strand)] 
 
@@ -686,10 +686,11 @@ def change_strand_internal_coord_global(strand, perturb_function):
             new_strand[i - 3], new_strand[i - 2], new_strand[i - 1],
             ds[i - 1], thetas[i - 2], taus[i - 3]))
 
-    com_old = sum(strand) / len(strand)
-    com_new = sum(new_strand) / len(new_strand)
+    # Superimpose the old and new strand
 
-    new_strand = [p + com_old - com_new for p in new_strand]
+    M, t = geometry.get_superimpose_transformation(new_strand, strand)
+
+    new_strand = [np.dot(M, p) + t for p in new_strand]
 
     return new_strand
 

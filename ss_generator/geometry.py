@@ -128,3 +128,21 @@ def pitch_angle_to_pitch(pitch_angle, R):
     '''Get the pitch of a screw from its pitch_angle and radius.'''
     return  2 * np.pi * R / np.tan(pitch_angle)
 
+def get_superimpose_transformation(P1, P2):
+    '''Get the superimpose transformation that transfoms a list of
+    points P1 to another list of points P2.'''
+    if len(P1) != len(P2):
+        raise Exception("Sets to be superimposed must have same number of points.")
+
+    com1 = np.mean(P1, axis=0)
+    com2 = np.mean(P2, axis=0)
+
+    R = np.dot(np.transpose(np.array(P1) - com1), np.array(P2) - com2)
+    V, S, W = np.linalg.svd(R)
+
+    if (np.linalg.det(V) * np.linalg.det(W)) < 0.0:
+        V[:, -1] = -V[:, -1]
+
+    M = np.array(np.dot(V, W))
+
+    return M, com2 - np.dot(M, com1)
