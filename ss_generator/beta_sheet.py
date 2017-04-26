@@ -459,91 +459,18 @@ def get_expected_bp_positions_of_strand(strand, strand_type, direction, method='
 
 def build_a_strand_from_a_reference(ref_strand, strand_type, direction):
     '''Build a strand from a reference strand.'''
-    # When the number of expected positions is even, extend the strand by one atom
-
-    extended_ref = ref_strand if len(ref_strand) % 2 != 0 else extend_a_strand(ref_strand, True)
 
     # Get expected positions
     
-    expected_positions = get_expected_bp_positions_of_strand(extended_ref, strand_type, direction)
-    expected_positions_old = expected_positions[:]
+    expected_positions = get_expected_bp_positions_of_strand(ref_strand, strand_type, direction)
+    
+    # Get the new strand by superimposing the ref_strand to the expected_positions
 
-    # Adjust the atoms on even positions, such that the distances between them are
-    # within a limit
-    PP_ANGLE_MAX = np.radians(140)
-    MAX_DISTANCE = 2 * D_MEAN * np.sin(PP_ANGLE_MAX / 2)
-    PP_ANGLE_MIN = np.radians(100)
-    MIN_DISTANCE = 2 * D_MEAN * np.sin(PP_ANGLE_MIN / 2)
-   
-    PP2_ANGLE_MIN = np.radians(150)
+    M, t = geometry.get_superimpose_transformation(ref_strand, expected_positions)
 
-    for i in range(0, len(expected_positions) - 2, 2):
-        v = expected_positions[i + 2] - expected_positions[i]
-        vv = geometry.normalize(v)
-       
-        # Adjust distance
+    new_strand = [np.dot(M, x) + t for x in ref_strand]
 
-        if np.linalg.norm(v) > MAX_DISTANCE:
-            expected_positions[i + 2] = expected_positions[i] + MAX_DISTANCE * vv
-       
-        elif np.linalg.norm(v) < MIN_DISTANCE:
-            expected_positions[i + 2] = expected_positions[i] + MIN_DISTANCE * vv
-
-        # Adjust angle
-
-        if i > 0 and geometry.angle(expected_positions[i + 2] - expected_positions[i],
-                expected_positions[i - 2] - expected_positions[i]) < PP2_ANGLE_MIN:
-            
-            expected_positions[i + 2] = geometry.change_angle(expected_positions[i - 2],
-                    expected_positions[i], expected_positions[i + 2], PP2_ANGLE_MIN)
-
-    # Adjust the expected positions such that the bond lengths are the ideal value
-
-    for i in range(1, len(expected_positions) - 1, 2):
-        v = expected_positions[i + 1] - expected_positions[i - 1]
-        vv = geometry.normalize(v)
-
-        center = (expected_positions[i - 1] + expected_positions[i + 1]) / 2
-        u = expected_positions[i] - center
-        t = u - np.dot(u, vv) * vv
-        
-        l = np.sqrt(D_MEAN ** 2 - (np.linalg.norm(v) / 2) ** 2)
-        expected_positions[i] = center + l * geometry.normalize(t)
-
-    # Functions to the strand 
-
-    def get_shift_dihedral(strand, pos):
-        '''Get the shift dihedral of a strand at a given position.'''
-        return geometry.dihedral(strand[pos], strand[pos + 1],
-                (strand[pos + 1] + strand[pos + 3]) / 2, strand[pos + 2])
-
-    def set_shift_dihedral(strand, pos, tau):
-        '''Get the shift dihedral of a strand at a given position.
-        Return the new coordinate of the atom at pos + 2.
-        '''
-        d = np.linalg.norm(strand[pos + 2] - (strand[pos + 1] + strand[pos + 3]) / 2)
-        return geometry.cartesian_coord_from_internal_coord(strand[pos],
-                strand[pos + 1], (strand[pos + 1] + strand[pos + 3]) / 2,
-                d, np.pi / 2, tau)
-
-    # Smooth the strand 3 times
-
-    for i in range(3):    
-        for j in range(1, len(expected_positions) - 4, 2):
-            
-            tau = np.mean([get_shift_dihedral(expected_positions, j), 
-                get_shift_dihedral(expected_positions, j + 2)])
-
-            expected_positions[j + 2] = set_shift_dihedral(expected_positions, j, tau)
-            expected_positions[j + 4] = set_shift_dihedral(expected_positions, j + 2, tau)
-
-    # Superimpose the adjusted expected_positions to the old positions
-
-    M, t = geometry.get_superimpose_transformation(expected_positions, expected_positions_old)
-
-    expected_positions = [np.dot(M, x) + t for x in expected_positions]
-
-    return expected_positions[:len(ref_strand)] 
+    return new_strand 
 
 def build_a_sheet_from_a_reference(ref_strand, strand_type, direction, num_strands):
     '''Build a sheet from a reference strand.'''
