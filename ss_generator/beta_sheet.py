@@ -61,11 +61,33 @@ def build_ideal_flat_beta_sheet(sheet_type, length, num_strand):
                 sheet[-1], np.identity(3), shift))
    
     elif sheet_type == 'antiparallel':
+        if length < 2 and num_strand > 2:
+            raise Exception("Invalid parameters for antiparallel beta sheet!")
+        
         shift = np.array([0, 5.24, 0])
 
         strand1 = build_ideal_flat_beta_strand(length)
         
         # Get the second strand
 
+        Mx = geometry.rotation_matrix_from_axis_and_angle(
+                np.array([1, 0, 0]), np.pi)
+        Mz = geometry.rotation_matrix_from_axis_and_angle(
+                np.array([0, 0, 1]), np.pi)
+
+        M = Mz if length % 2 == 1 else np.dot(Mx, Mz)
+        t = shift + strand1[0]['ca'] \
+            - basic.transform_residue(strand1[-1], M, np.zeros(3))['ca']
+
+        strand2 = basic.transform_residue_list(strand1, M, t)
+
+        # Get the rest of the sheet
+    
+        shift2 = shift + strand2[-2]['ca'] - strand1[1]['ca']
+
+        sheet = [strand1, strand2]
+        for i in range(2, num_strand):
+            sheet.append(basic.transform_residue_list(
+                sheet[-2], np.identity(3), shift2))
 
     return sheet
