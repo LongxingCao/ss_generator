@@ -1,6 +1,7 @@
 import numpy as np
 
 from . import geometry
+from . import basic
 
 
 def build_ideal_flat_beta_strand(length):
@@ -32,10 +33,7 @@ def build_ideal_flat_beta_strand(length):
     # Get the coordinates of the second residue
 
     t = np.dot(My, ca2_f)
-    res2 = {}
-
-    for key in res1.keys():
-        res2[key] = np.dot(Mx, res1[key]) + t
+    res2 = basic.transform_residue(res1, Mx, t) 
 
     # Get the coordinates of the strand
     
@@ -43,18 +41,31 @@ def build_ideal_flat_beta_strand(length):
     strand =[res1, res2]
     
     for i in range(2, length):
-        
-        res = {}
-        for key in res1.keys():
-            res[key] = strand[i - 2][key] + shift
-
-        strand.append(res)
+        strand.append(basic.transform_residue(strand[i - 2], np.identity(3), shift))
 
     return strand[:length]
 
-def build_ideal_flat_beta_sheet(length, num_strand):
+def build_ideal_flat_beta_sheet(sheet_type, length, num_strand):
     '''Build an ideal flat beta sheet.
     The sheet plane is the x, y plane and the direction 
     of strands is the x axis.
     '''
-    return build_ideal_flat_beta_strand(length)
+    sheet = []
+
+    if sheet_type == 'parallel':
+        shift = np.array([0, 4.84, 0])
+        sheet.append(build_ideal_flat_beta_strand(length))
+        
+        for i in range(1, num_strand):
+            sheet.append(basic.transform_residue_list(
+                sheet[-1], np.identity(3), shift))
+   
+    elif sheet_type == 'antiparallel':
+        shift = np.array([0, 5.24, 0])
+
+        strand1 = build_ideal_flat_beta_strand(length)
+        
+        # Get the second strand
+
+
+    return sheet
