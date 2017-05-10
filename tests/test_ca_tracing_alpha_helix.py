@@ -22,9 +22,9 @@ def test_transformations():
             tau = mean_tau + c2 * std_tau
 
             axis, xi = ssg.geometry.rotation_matrix_to_axis_and_angle(
-                    ssg.alpha_helix.theta_tau_to_rotation_matrix(theta, tau))
+                    ssg.ca_tracing.alpha_helix.theta_tau_to_rotation_matrix(theta, tau))
 
-            c_theta, c_tau = ssg.alpha_helix.axis_to_theta_tau(axis)
+            c_theta, c_tau = ssg.ca_tracing.alpha_helix.axis_to_theta_tau(axis)
 
             print("theta = {0:.2f}\ttau = {1:.2f}\txi = {2:.2f}\taxis = {3}\tc_theta = {4:.2f}\tc_tau = {5:.2f}".format(
                 np.degrees(theta), np.degrees(tau), np.degrees(xi), axis, np.degrees(c_theta), np.degrees(c_tau)))
@@ -36,9 +36,9 @@ def test_build_nexus():
     tau = np.radians(49.5)
 
     axis = ssg.geometry.rotation_matrix_to_axis_and_angle(
-            ssg.alpha_helix.theta_tau_to_rotation_matrix(theta, tau))[0]
+            ssg.ca_tracing.alpha_helix.theta_tau_to_rotation_matrix(theta, tau))[0]
 
-    c_theta, c_tau = ssg.alpha_helix.theta_tau_for_nexus(axis, axis)
+    c_theta, c_tau = ssg.ca_tracing.alpha_helix.theta_tau_for_nexus(axis, axis)
 
     print("theta = {0:.2f}\ttau = {1:.2f}\taxis = {2}\tc_theta = {3:.2f}\tc_tau = {4:.2f}".format(
             np.degrees(theta), np.degrees(tau), axis, np.degrees(c_theta), np.degrees(c_tau)))
@@ -58,17 +58,17 @@ def test_generate_alpha_helix():
     #ssg.IO.save_ca_list(ca_list, "random_helix.pdb")
 
     #screw_axes = [np.array([0, 0, 1])] * 20
-    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
+    #ca_list = ssg.ca_tracing.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
     #ssg.IO.save_ca_list(ca_list, "z_helix.pdb")
 
     #screw_axes = [np.array([0, 0, 1])]
     #for i in range(100):
     #    screw_axes.append(ssg.geometry.normalize(screw_axes[i] + 0.001 * np.array([np.random.normal(), np.random.normal(), np.random.normal()])))
 
-    #ca_list = ssg.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
+    #ca_list = ssg.ca_tracing.alpha_helix.generate_alpha_helix_from_screw_axes(screw_axes)
     #ssg.IO.save_ca_list(ca_list, "random_screws.pdb")
     
-    ca_list = ssg.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-3.6), np.radians(12), 1000)
+    ca_list = ssg.ca_tracing.alpha_helix.generate_super_coil(np.array([0, 0, 1]), np.radians(-3.6), np.radians(12), 1000)
     ssg.IO.save_ca_list(ca_list, "super_coil.pdb")
 
 def test_perturb_alpha_helix():
@@ -83,23 +83,23 @@ def test_perturb_alpha_helix():
         ca += np.array([10, 0, 0])
     
     ssg.IO.save_ca_list(ca_list_before, "helix_before_perturb.pdb")
-    ca_list_before_bb = ssg.alpha_helix.thread_backbone_for_helix(ca_list_before)
+    ca_list_before_bb = ssg.ca_tracing.alpha_helix.thread_backbone_for_helix(ca_list_before)
     ssg.IO.save_residue_list(ca_list_before_bb, 'helix_before_perturb_bb.pdb')
    
-    random_perturbed_ca_list = ssg.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
+    random_perturbed_ca_list = ssg.ca_tracing.alpha_helix.randomize_a_helix(ca_list_before, 0.1)
     ssg.IO.save_ca_list(random_perturbed_ca_list, "helix_random_perturb.pdb")
-    random_perturbed_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(random_perturbed_ca_list)
+    random_perturbed_ca_list_bb = ssg.ca_tracing.alpha_helix.thread_backbone_for_helix(random_perturbed_ca_list)
     ssg.IO.save_residue_list(random_perturbed_ca_list_bb, 'helix_random_perturb_bb.pdb')
 
-    phase_shifted_ca_list = ssg.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
+    phase_shifted_ca_list = ssg.ca_tracing.alpha_helix.shift_helix_phase(random_perturbed_ca_list, np.pi)
     ssg.IO.save_ca_list(phase_shifted_ca_list, "helix_phase_shifted.pdb")
-    phase_shifted_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(phase_shifted_ca_list)
+    phase_shifted_ca_list_bb = ssg.ca_tracing.alpha_helix.thread_backbone_for_helix(phase_shifted_ca_list)
     ssg.IO.save_residue_list(phase_shifted_ca_list_bb, 'helix_phase_shifted_bb.pdb')
 
     ca_to_twist = random_perturbed_ca_list
-    twisted_ca_list = ssg.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
+    twisted_ca_list = ssg.ca_tracing.alpha_helix.twist_helix(ca_to_twist, ca_to_twist[-1] - ca_to_twist[0], np.radians(12), np.radians(-3.6), 0.5)
     ssg.IO.save_ca_list(twisted_ca_list, "helix_twisted.pdb")
-    twisted_ca_list_bb = ssg.alpha_helix.thread_backbone_for_helix(twisted_ca_list)
+    twisted_ca_list_bb = ssg.ca_tracing.alpha_helix.thread_backbone_for_helix(twisted_ca_list)
     ssg.IO.save_residue_list(twisted_ca_list_bb, 'helix_twisted_ca_list_bb.pdb')
 
 def test_thread_bb():
@@ -112,5 +112,5 @@ def test_thread_bb():
 
     ca_list = ssg.basic.generate_segment_from_internal_coordinates(ds, thetas, taus)
     ssg.IO.save_ca_list(ca_list, 'straight_helix.pdb')
-    res_list = ssg.alpha_helix.thread_backbone_for_helix(ca_list)
+    res_list = ssg.ca_tracing.alpha_helix.thread_backbone_for_helix(ca_list)
     ssg.IO.save_residue_list(res_list, 'straight_helix_bb.pdb')

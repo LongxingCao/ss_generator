@@ -1,7 +1,7 @@
 import numpy as np
 
-from . import geometry
-from . import basic
+from ss_generator import geometry
+from ss_generator import basic
 
 D_MEAN = 3.81
 D_STD = 0.02
