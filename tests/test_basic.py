@@ -8,5 +8,5 @@ import ss_generator as ssg
 
 def test_peptide_bond():
     print("test peptide bond.")
-    d = ssg.basic.get_peptide_bond_parameters()
+    d = ssg.ca_tracing.basic.get_peptide_bond_parameters()
     print(d)

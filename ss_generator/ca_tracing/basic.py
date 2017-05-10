@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import geometry
+from ss_generator import geometry
 
 
 def get_internal_coordinates_from_ca_list(ca_list):
