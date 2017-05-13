@@ -124,6 +124,24 @@ def get_screw_transformation(axis, theta, pitch, u):
 
     return R, t
 
+def get_screw_parameters(M, t):
+    '''Get the screw parameters given its Euclidean transformation.
+    Return the axis of the screw, the screw angle, the pitch and
+    a point on the screw axis. Use the convention that the pitch is
+    always positive.
+    '''
+    axis, theta = rotation_matrix_to_axis_and_angle(M)
+
+    if np.dot(axis, t) < 0:
+        axis = -axis
+        theta = -theta
+
+    pitch = np.dot(axis, t) * 2 * np.pi / theta
+
+    u = np.linalg.lstsq(M - np.identity(3), np.dot(axis, t) * axis - t)[0]
+
+    return axis, theta, pitch, u
+
 def pitch_angle_to_pitch(pitch_angle, R):
     '''Get the pitch of a screw from its pitch_angle and radius.'''
     return  2 * np.pi * R / np.tan(pitch_angle)
