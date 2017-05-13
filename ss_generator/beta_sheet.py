@@ -142,7 +142,7 @@ def attach_beta_strand_to_reference(strand, ref_strand, strand_type, bp_map, dir
             expected_positions.append(co_expected[0])
             expected_positions.append(co_expected[1])
        
-    # Find the Eucleadian transformation
+    # Find the Euclidean transformation
 
     M, t = geometry.get_superimpose_transformation(current_positions, expected_positions)
 
