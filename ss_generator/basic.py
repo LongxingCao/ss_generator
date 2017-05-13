@@ -22,12 +22,12 @@ def transform_residue_list(res_list, M, t):
 
 def change_torsions(strand, res_id, phi, psi):
     '''Change the phi, psi angles of a residue in
-    a strand.
+    a strand. The input torsions should be in radians.
     '''
 
     # Rotate the psi torsion
 
-    if res_id < len(strand) - 1:
+    if 0 <= res_id < len(strand) - 1:
     
         psi_old = geometry.dihedral(strand[res_id]['n'], strand[res_id]['ca'], 
                 strand[res_id]['c'], strand[res_id + 1]['n'])
@@ -47,7 +47,7 @@ def change_torsions(strand, res_id, phi, psi):
 
     # Rotate the phi torsion
     
-    if res_id > 0:
+    if 0 < res_id < len(strand):
 
         phi_old = geometry.dihedral(strand[res_id - 1]['c'], strand[res_id]['n'],
                 strand[res_id]['ca'], strand[res_id]['c'])
@@ -60,5 +60,9 @@ def change_torsions(strand, res_id, phi, psi):
 
         # Rotate subsequent residues
 
-        for i in range(res_id, len(strand)):
+        for key in strand[res_id].keys():
+            if key != 'h':
+                strand[res_id][key] = np.dot(M, strand[res_id][key]) + t
+
+        for i in range(res_id + 1, len(strand)):
             strand[i] = transform_residue(strand[i], M, t)

@@ -17,6 +17,7 @@ def build_ideal_flat_beta_strand(length):
     c_f = np.array([1.311, 0.788, 0])
     o_f = np.array([1.311, 2.028, 0])
     n_f = np.array([2.392, 0.031, 0])
+    h_f = np.array([2.392, -0.969, 0])
     ca2_f = np.array([3.755, 0.582, 0])
 
     # Get the coordinates of the first residue
@@ -28,6 +29,7 @@ def build_ideal_flat_beta_strand(length):
             np.array([0, 1, 0]), -(np.pi - eta) / 2)
 
     res1 = {'n' : np.dot(np.transpose(My), np.dot(Mx, n_f - ca2_f)),
+            'h' : np.dot(np.transpose(My), np.dot(Mx, h_f - ca2_f)),
             'ca' : ca1_f, 'c' : np.dot(My, c_f), 'o' : np.dot(My, o_f)}
 
     # Get the coordinates of the second residue
