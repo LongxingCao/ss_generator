@@ -39,7 +39,7 @@ def get_internal_coordinates_for_ideal_strand(R, delta, alpha, eta):
 
     # Get p3 and p4
 
-    M_screw, t_screw = geometry.get_screw(np.array([0, 0, 1]), delta,
+    M_screw, t_screw = geometry.get_screw_transformation(np.array([0, 0, 1]), delta,
             2 * np.pi / np.absolute(delta) * h, np.array([-R, 0, 0]))
 
     p3 = np.dot(M_screw, p1) + t_screw
@@ -154,7 +154,7 @@ def get_screw_transformation_for_strand(strand, distance, direction):
     
     # Get the screw rotation and translation
     
-    return geometry.get_screw(z, screw_angle, pitch, u)
+    return geometry.get_screw_transformation(z, screw_angle, pitch, u)
     
 def generate_ideal_beta_sheet_from_internal_coordinates(theta1, tau1, theta2, tau2, length, num_strands, sheet_type='parallel'):
     '''Generate an ideal beta sheet from three internal coordinates, the length of each strand

@@ -111,7 +111,7 @@ def rotation_matrix_to_superimpose_two_vectors(v1, v2, theta=0):
 
     return np.dot(rotation_matrix_from_axis_and_angle(v2, theta), M)
 
-def get_screw(axis, theta, pitch, u):
+def get_screw_transformation(axis, theta, pitch, u):
     '''Get the ration matrix and translate vector of a screw
     transformation from the direction of the screw axis, the 
     screw angle theta, the pitch and a point u on the screw axis.
