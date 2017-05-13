@@ -93,3 +93,59 @@ def build_ideal_flat_beta_sheet(sheet_type, length, num_strand):
                 sheet[-2], np.identity(3), shift2))
 
     return sheet
+
+def attach_beta_strand_to_reference(strand, ref_strand, strand_type, bp_map, direction):
+    '''Attach a beta strand to a reference strand.
+    The beta pairing between the two strand are defined by the bp_map
+    which maps reference strand residues to residues of the strand to be attached.
+    The direction variable is either 0 or 1. When direction == 0, the 
+    strand is attached to the side pointed by the NH and CO vectors of
+    residues in the ref_strand that have even indices. When direction == 1,
+    the strand is attached to the other side.
+    Return a new strand after transformation.
+    '''
+    if direction not in [0, 1]:
+        raise Exception("direction must be either 0 or 1!")
+
+    current_positions = []  # Current positions of hydrogen bonding atoms in the strand 
+    expected_positions = [] # Expected positions of hydrogen bonding atoms in the strand
+
+    ref_ids = [k for k in bp_map.keys() if k % 2 == direction]
+
+    for i_ref in ref_ids:
+        
+        # Get the residue id that use NH to pair with the reference
+
+        i_nh = bp_map[i_ref] if strand_type == 'antiparallel' else bp_map[i_ref] + 1
+        
+        # Get the residue id that use CO to pair with the reference
+
+        i_co = bp_map[i_ref] if strand_type == 'antiparallel' else bp_map[i_ref] - 1
+
+        # Get the expected positions of HB atoms
+
+        if i_nh in range(len(strand)):
+            nh_expected = basic.get_hb_nh_coord_from_co(ref_strand[i_ref]['c'],
+                                ref_strand[i_ref]['o'])
+            
+            current_positions.append(strand[i_nh]['n'])
+            current_positions.append(strand[i_nh]['h'])
+            expected_positions.append(nh_expected[0])
+            expected_positions.append(nh_expected[1])
+        
+        if i_co in range(len(strand)):
+            co_expected = basic.get_hb_co_coord_from_nh(ref_strand[i_ref]['n'],
+                                ref_strand[i_ref]['h'])
+            
+            current_positions.append(strand[i_co]['c'])
+            current_positions.append(strand[i_co]['o'])
+            expected_positions.append(co_expected[0])
+            expected_positions.append(co_expected[1])
+       
+    # Find the Eucleadian transformation
+
+    M, t = geometry.get_superimpose_transformation(current_positions, expected_positions)
+
+    # Transform the strand
+
+    return basic.transform_residue_list(strand, M, t)

@@ -66,3 +66,18 @@ def change_torsions(strand, res_id, phi, psi):
 
         for i in range(res_id + 1, len(strand)):
             strand[i] = transform_residue(strand[i], M, t)
+
+def get_hb_co_coord_from_nh(n, h):
+    '''Get the ideal coordinates of C and O from
+    coordinates of N and H.
+    '''
+    v = geometry.normalize(h - n)
+    return (n + 3.9 * v, n + 2.7 * v)
+
+def get_hb_nh_coord_from_co(c, o):
+    '''Get the ideal coordinates of N and H from
+    coordinates of C and O.
+    '''
+    v = geometry.normalize(o - c)
+    return (c + 3.9 * v, c + 2.9 * v)
+
