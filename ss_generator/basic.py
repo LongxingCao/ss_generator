@@ -81,3 +81,33 @@ def get_hb_nh_coord_from_co(c, o):
     v = geometry.normalize(o - c)
     return (c + 3.9 * v, c + 2.9 * v)
 
+def get_peptide_bond_transformation(phi, psi):
+    '''Get the rotation matrix and translation vector of a peptide bond
+    corresponding to a pair of phi psi torsions. The reference frame
+    is build on the C, N and CA atoms.
+    '''
+    # Set the parameters
+
+    n_ca_length = 1.47
+    ca_c_length = 1.53
+    c_n_length = 1.32
+    n_ca_c_angle = np.radians(111.2)
+    ca_c_n_angle = np.radians(114)
+    c_n_ca_angle = np.radians(123)
+    omega = np.pi
+
+    # Get the coordinates
+
+    c1 = c_n_length * np.array([np.sin(c_n_ca_angle), np.cos(c_n_ca_angle), 0])
+    n1 = np.array([0, 0, 0])
+    ca1 = np.array([0, n_ca_length, 0])
+    c2 = geometry.cartesian_coord_from_internal_coord(c1, n1, ca1, 
+            ca_c_length, n_ca_c_angle, phi)
+    n2 = geometry.cartesian_coord_from_internal_coord(n1, ca1, c2,
+            c_n_length, ca_c_n_angle, psi)
+    ca2 = geometry.cartesian_coord_from_internal_coord(ca1, c2, n2,
+            n_ca_length, c_n_ca_angle, omega)
+
+    # Get the transformation
+
+    return np.transpose(geometry.create_frame_from_three_points(c2, n2, ca2)), n2 - n1
