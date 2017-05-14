@@ -155,8 +155,8 @@ def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
     Get the expected bp residue positions of two residues in a strand using
     a screw transformation defined by four torsions of residue at res_id and
     res_id + 1.
-    Return two expected positions at the positive direction defined by the 
-    HB atoms of the residue at res_id and two expected_positions at the negative
+    Return two expected CA positions at the positive direction defined by the 
+    HB atoms of the residue at res_id and two expected CA positions at the negative
     direction.
     '''
     if not (0 < res_id < len(strand) - 2):
@@ -189,8 +189,8 @@ def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
         M_inter, t_inter = geometry.get_screw_transformation(
                             inter_axis, angle_inter, pitch_inter, u)
 
-        return [basic.transform_residue(strand[res_id], M_inter, t_inter),
-                basic.transform_residue(strand[res_id + 1], M_inter, t_inter)]
+        return [basic.transform_residue(strand[res_id], M_inter, t_inter)['ca'],
+                basic.transform_residue(strand[res_id + 1], M_inter, t_inter)['ca']]
 
     # Get the ca-ca distances
 
@@ -200,7 +200,7 @@ def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
     hb_direction = strand[res_id]['o'] - strand[res_id]['c']
 
     return (get_transformed_residues(d_pos, hb_direction), 
-            get_transformed_residues(d_neg, hb_direction))
+            get_transformed_residues(d_neg, -hb_direction))
      
 def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp_map, direction):
     '''Attach a beta strand to a reference strand.
@@ -219,7 +219,7 @@ def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp
 
     expected_strand = []
 
-    for i in range(1, len(ref_strand) - 1, 2):
+    for i in range(1, len(ref_strand) - 2, 2):
         expected_bp_positions = get_expeceted_bp_positions_for_two_residue(
                                     ref_strand, i, strand_type)
 
@@ -233,15 +233,12 @@ def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp
     current_positions = []  
     expected_positions = [] 
 
-    res_ids = [key for key in bp_map.keys() if 0 < key < len(ref_strand) - 1]
+    res_ids = [key for key in bp_map.keys() if 0 < key < len(ref_strand) - 2]
 
     for res_id in res_ids:
-        current_res = strand[bp_map[res_id]]
-        expected_res = expected_strand[res_id - 1]
+        current_positions.append(strand[bp_map[res_id]]['ca'])
+        expected_positions.append(expected_strand[res_id - 1])
 
-        for key in current_res.keys():
-            current_positions.append(current_res[key])
-            expected_positions.append(expected_res[key])
         
     M, t = geometry.get_superimpose_transformation(current_positions, expected_positions)
 
