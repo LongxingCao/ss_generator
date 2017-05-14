@@ -111,6 +111,20 @@ def rotation_matrix_to_superimpose_two_vectors(v1, v2, theta=0):
 
     return np.dot(rotation_matrix_from_axis_and_angle(v2, theta), M)
 
+def point_lists_to_screw_transformation(P1, P2):
+    '''Calculate the screw transformation that transforms
+    point list P1 to point list P2. Both P1 and P2 have
+    3 points respectively.
+    '''
+    frame1 = create_frame_from_three_points(P1[0], P1[1], P1[2])
+    frame2 = create_frame_from_three_points(P2[0], P2[1], P2[2])
+
+    M = np.dot(np.transpose(frame2), frame1)
+    t = P2[0] - np.dot(M, P1[0])
+
+    return M, t
+
+
 def get_screw_transformation(axis, theta, pitch, u):
     '''Get the ration matrix and translate vector of a screw
     transformation from the direction of the screw axis, the 
@@ -136,7 +150,7 @@ def get_screw_parameters(M, t):
         axis = -axis
         theta = -theta
 
-    pitch = np.dot(axis, t) * 2 * np.pi / theta
+    pitch = np.dot(axis, t) * 2 * np.pi / np.absolute(theta)
 
     u = np.linalg.lstsq(M - np.identity(3), np.dot(axis, t) * axis - t)[0]
 
@@ -148,7 +162,11 @@ def get_screw_parameters(M, t):
 
 def pitch_angle_to_pitch(pitch_angle, R):
     '''Get the pitch of a screw from its pitch_angle and radius.'''
-    return  2 * np.pi * R / np.tan(pitch_angle)
+    return  2 * np.pi * R / np.absolute(np.tan(pitch_angle))
+
+def pitch_to_pitch_angle(pitch, R):
+    '''Get the pitch angle of a screw from its pitch and radius.'''
+    return np.arctan2(2 * np.pi * R, pitch) 
 
 def get_superimpose_transformation(P1, P2):
     '''Get the superimpose transformation that transfoms a list of

@@ -94,7 +94,7 @@ def build_ideal_flat_beta_sheet(sheet_type, length, num_strand):
 
     return sheet
 
-def attach_beta_strand_to_reference(strand, ref_strand, strand_type, bp_map, direction):
+def attach_beta_strand_to_reference_byHB(strand, ref_strand, strand_type, bp_map, direction):
     '''Attach a beta strand to a reference strand.
     The beta pairing between the two strand are defined by the bp_map
     which maps reference strand residues to residues of the strand to be attached.
@@ -149,3 +149,103 @@ def attach_beta_strand_to_reference(strand, ref_strand, strand_type, bp_map, dir
     # Transform the strand
 
     return basic.transform_residue_list(strand, M, t)
+
+def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
+    '''
+    Get the expected bp residue positions of two residues in a strand using
+    a screw transformation defined by four torsions of residue at res_id and
+    res_id + 1.
+    Return two expected positions at the positive direction defined by the 
+    HB atoms of the residue at res_id and two expected_positions at the negative
+    direction.
+    '''
+    if not (0 < res_id < len(strand) - 2):
+        raise Exception("Residues must be in the interior of the strand.")
+
+    # Get the screw transformation of the strand
+
+    M, t = geometry.point_lists_to_screw_transformation(
+            [strand[res_id - 1]['c'], strand[res_id]['n'], strand[res_id]['ca']],
+            [strand[res_id + 1]['c'], strand[res_id + 2]['n'], strand[res_id + 2]['ca']])
+
+    axis, angle, pitch, u = geometry.get_screw_parameters(M, t)
+
+    # Get the radius of the screw for the Ca atom in res_id
+
+    v = u - strand[res_id]['ca'] 
+    R = np.linalg.norm(v - np.dot(v, axis) * axis)
+
+    # Get the pitch for the inter strand screw
+
+    pitch_angle_strand = geometry.pitch_to_pitch_angle(pitch, R)
+    pitch_angle_inter = np.pi / 2 - pitch_angle_strand
+    
+    pitch_inter = geometry.pitch_angle_to_pitch(pitch_angle_inter, R)
+
+    def get_transformed_residues(d, direction):
+        angle_inter = -np.sign(angle) * d * np.sin(pitch_angle_inter) / R
+        inter_axis = np.sign(np.dot(direction, axis)) * axis
+
+        M_inter, t_inter = geometry.get_screw_transformation(
+                            inter_axis, angle_inter, pitch_inter, u)
+
+        return [basic.transform_residue(strand[res_id], M_inter, t_inter),
+                basic.transform_residue(strand[res_id + 1], M_inter, t_inter)]
+
+    # Get the ca-ca distances
+
+    d_pos = 4.84 if strand_type == 'parallel' else 5.24
+    d_neg = 4.84 if strand_type == 'parallel' else 4.5
+    
+    hb_direction = strand[res_id]['o'] - strand[res_id]['c']
+
+    return (get_transformed_residues(d_pos, hb_direction), 
+            get_transformed_residues(d_neg, hb_direction))
+     
+def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp_map, direction):
+    '''Attach a beta strand to a reference strand.
+    The beta pairing between the two strand are defined by the bp_map
+    which maps reference strand residues to residues of the strand to be attached.
+    The direction variable is either 0 or 1. When direction == 0, the 
+    strand is attached to the side pointed by the NH and CO vectors of
+    residues in the ref_strand that have even indices. When direction == 1,
+    the strand is attached to the other side.
+    Return a new strand after transformation.
+    '''
+    if direction not in [0, 1]:
+        raise Exception("direction must be either 0 or 1!")
+
+    # Get expected residues for the ref_strand
+
+    expected_strand = []
+
+    for i in range(1, len(ref_strand) - 1, 2):
+        expected_bp_positions = get_expeceted_bp_positions_for_two_residue(
+                                    ref_strand, i, strand_type)
+
+        expected_strand += expected_bp_positions[1 - direction]
+
+    if len(expected_strand) == 0:
+        raise Exception("Cannot attach the strand, the ref_strand is too short.")
+
+    # Get the Euclidean transformation
+
+    current_positions = []  
+    expected_positions = [] 
+
+    res_ids = [key for key in bp_map.keys() if 0 < key < len(ref_strand) - 1]
+
+    for res_id in res_ids:
+        current_res = strand[bp_map[res_id]]
+        expected_res = expected_strand[res_id - 1]
+
+        for key in current_res.keys():
+            current_positions.append(current_res[key])
+            expected_positions.append(expected_res[key])
+        
+    M, t = geometry.get_superimpose_transformation(current_positions, expected_positions)
+
+    # Transform the strand
+
+    return basic.transform_residue_list(strand, M, t)
+
