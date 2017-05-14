@@ -140,6 +140,10 @@ def get_screw_parameters(M, t):
 
     u = np.linalg.lstsq(M - np.identity(3), np.dot(axis, t) * axis - t)[0]
 
+    # Let u be perpendicular to the axis
+
+    u = u - np.dot(u, axis) * axis
+
     return axis, theta, pitch, u
 
 def pitch_angle_to_pitch(pitch_angle, R):
