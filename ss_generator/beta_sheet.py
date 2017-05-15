@@ -182,15 +182,19 @@ def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
     
     pitch_inter = geometry.pitch_angle_to_pitch(pitch_angle_inter, R)
 
-    def get_transformed_residues(d, direction):
-        angle_inter = -np.sign(angle) * d * np.sin(pitch_angle_inter) / R
+    def get_transformed_residues(d1, d2, direction):
         inter_axis = np.sign(np.dot(direction, axis)) * axis
+        angle_inter1 = -np.sign(angle) * d1 * np.sin(pitch_angle_inter) / R
+        angle_inter2 = -np.sign(angle) * d2 * np.sin(pitch_angle_inter) / R
 
-        M_inter, t_inter = geometry.get_screw_transformation(
-                            inter_axis, angle_inter, pitch_inter, u)
+        M_inter1, t_inter1 = geometry.get_screw_transformation(
+                            inter_axis, angle_inter1, pitch_inter, u)
 
-        return [basic.transform_residue(strand[res_id], M_inter, t_inter)['ca'],
-                basic.transform_residue(strand[res_id + 1], M_inter, t_inter)['ca']]
+        M_inter2, t_inter2 = geometry.get_screw_transformation(
+                            inter_axis, angle_inter2, pitch_inter, u)
+
+        return [basic.transform_residue(strand[res_id], M_inter1, t_inter1)['ca'],
+                basic.transform_residue(strand[res_id + 1], M_inter2, t_inter2)['ca']]
 
     # Get the ca-ca distances
 
@@ -199,8 +203,8 @@ def get_expeceted_bp_positions_for_two_residue(strand, res_id, strand_type):
     
     hb_direction = strand[res_id]['o'] - strand[res_id]['c']
 
-    return (get_transformed_residues(d_pos, hb_direction), 
-            get_transformed_residues(d_neg, -hb_direction))
+    return (get_transformed_residues(d_pos, d_neg, hb_direction), 
+            get_transformed_residues(d_neg, d_pos, -hb_direction))
      
 def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp_map, direction):
     '''Attach a beta strand to a reference strand.
