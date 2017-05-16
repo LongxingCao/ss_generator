@@ -92,7 +92,7 @@ def build_ideal_flat_beta_sheet(sheet_type, length, num_strand):
             sheet.append(basic.transform_residue_list(
                 sheet[-2], np.identity(3), shift2))
 
-    return sheet
+    return sheet[:num_strand]
 
 def attach_beta_strand_to_reference_byHB(strand, ref_strand, strand_type, bp_map, direction):
     '''Attach a beta strand to a reference strand.
