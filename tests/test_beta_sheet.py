@@ -32,14 +32,6 @@ def test_build_beta_sheet():
     ssg.IO.save_residue_list(res_list, "perturbed_sheet.pdb")
 
 
-    peptide_dipeptide_transformations = ssg.beta_sheet.load_peptide_dipeptide_transformations("peptide_dipeptide_transformations.json")
-    
-    #di_pp_direction = ssg.beta_sheet.get_dipeptide_bond_direction(*res_list[0][:3])
-    #expected_transformation = ssg.beta_sheet.get_expected_dipeptide_transformation(*res_list[0][:2], *di_pp_direction)
-    #print(ssg.beta_sheet.search_peptide_dipeptide_transformations(peptide_dipeptide_transformations, expected_transformation))
-
-
-
     axis = np.array([0, 0, 1])
     theta = np.radians(0)
     M = ssg.geometry.rotation_matrix_from_axis_and_angle(axis, theta)
@@ -54,6 +46,6 @@ def test_build_beta_sheet():
         di_pp_directions.append((v1, v2))
 
 
-    res_list = ssg.beta_sheet.build_beta_strand_from_dipeptide_directions(di_pp_directions, peptide_dipeptide_transformations)
+    res_list = ssg.beta_sheet.build_beta_strand_from_dipeptide_directions(di_pp_directions)
     ssg.IO.save_residue_list(res_list, "dipp_sheet.pdb")
 

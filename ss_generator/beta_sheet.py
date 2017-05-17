@@ -129,44 +129,7 @@ def get_dipeptide_bond_direction(res1, res2, res3):
 
     return (dipeptide_bond_direction, hb_direction)
 
-def get_expected_dipeptide_transformation(res1, res2, dipeptide_bond_direction, hb_direction):
-    '''Get the peptide bond to dipeptide bond transformation given the two
-    residues that forms a peptide bond and the direction of the dipeptide
-    bond.
-    Return the transformation matrix in the peptide frame.
-    '''
-
-    pp_frame = geometry.create_frame_from_three_points(res1['c'], res2['n'], res2['ca'])
-    dipp_frame = np.array([dipeptide_bond_direction, hb_direction,
-                            np.cross(dipeptide_bond_direction, hb_direction)])
-
-    return np.dot(pp_frame, np.transpose(dipp_frame))
-
-def load_peptide_dipeptide_transformations(data_file):
-    '''Load peptide to dipeptide transformations from a json file.'''
-    with open(data_file, 'r') as f:
-        transformations = json.loads(f.read())
-        for d in transformations:
-            d['M'] = np.array(d['M'])
-        return transformations
-
-def search_peptide_dipeptide_transformations(transformations, expected_transformation):
-    '''Find the peptide to dipeptide transformation that match the expected_transformation
-    best. Return the matched transformation and the norm of the difference matrix.
-    '''
-    best_match = None
-    best_diff = 100
-
-    for t in transformations:
-        diff = np.linalg.norm(expected_transformation - t['M'])
-
-        if diff < best_diff:
-            best_match = t
-            best_diff = diff
-
-    return best_match, best_diff
-
-def build_beta_strand_from_dipeptide_directions(di_pp_directions, pp_di_pp_transformations):
+def build_beta_strand_from_dipeptide_directions(di_pp_directions):
     '''Build a beta strand given a list of dipeptide bond directions and 
     peptide to dipeptide bond transformations.
     '''
@@ -187,20 +150,5 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions, pp_di_pp_trans
 
     for i in range(1, len(di_pp_directions)):
         res_id = 2 * i
-
-        # Find the best tranformation
-
-        expected_transformation = get_expected_dipeptide_transformation(
-                *strand[res_id - 1:res_id + 1], *di_pp_directions[i])
-
-        match, best_diff = search_peptide_dipeptide_transformations(
-                pp_di_pp_transformations, expected_transformation)
-
-        print(best_diff) ###DEBUG
-
-        # Change the torsions
-
-        basic.change_torsions(strand, res_id, match['phi1'], match['psi1'])
-        basic.change_torsions(strand, res_id + 1, match['phi2'], match['psi2'])
 
     return strand
