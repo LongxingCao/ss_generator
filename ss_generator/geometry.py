@@ -194,3 +194,4 @@ def get_superimpose_transformation(P1, P2):
     M = np.transpose(np.array(np.dot(V, W)))
 
     return M, com2 - np.dot(M, com1)
+
