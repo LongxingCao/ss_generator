@@ -28,6 +28,14 @@ def dihedral(p1, p2, p3, p4):
 
     return np.arctan2(s, c) 
 
+def perpendicular_vector(v):
+    '''Get a perpendicular vector to a vector v.'''
+    v = normalize(v)
+
+    if np.absolute(v[0]) > 0.1:
+        return normalize(np.array([v[1], -v[0], 0]))
+    else:
+        return normalize(np.array([0, v[2], -v[1]]))
 
 def create_frame_from_three_points(p1, p2, p3):
     '''Create a left-handed coordinate frame from 3 points. 

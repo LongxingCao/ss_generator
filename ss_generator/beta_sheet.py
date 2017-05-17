@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.optimize
 
 from . import geometry
 from . import basic
@@ -250,3 +251,131 @@ def attach_beta_strand_to_reference_by_screw(strand, ref_strand, strand_type, bp
 
     return basic.transform_residue_list(strand, M, t)
 
+def calc_n_ca_c_angle_between_peptide_plan(eta, epsilon_n, epsilon_c):
+    '''Calculate the n_ca_c angle given the angle eta between two peptide plane,
+    epsilon_n the residual of the angle between the ca_n vector and the intersection line and
+    epsilon_c the residual of the angle between the ca_c vector and the intersection line.
+    '''
+    v_n = np.array([np.cos(epsilon_n), 0, np.sin(epsilon_n)])
+    v_c = np.array([np.cos(epsilon_c) * np.cos(eta), np.cos(epsilon_c) * np.sin(eta),
+                    np.sin(epsilon_c)])
+
+    return np.arccos(np.dot(v_n, v_c))
+
+def get_flat_dipeptide_torsions(epsilon_n, eta):
+    '''Get the torsions for a flat dipeptide.'''
+    epsilon_c = epsilon_n + np.radians(9)
+
+    n = 1.47 * np.array([-np.cos(epsilon_n) * np.sin(eta / 2), -np.sin(epsilon_n), 
+                         -np.cos(eta / 2) * np.cos(epsilon_n)])
+    ca = np.array([0, 0, 0])
+    c = 1.53 * np.array([np.cos(epsilon_c) * np.sin(eta / 2), -np.sin(epsilon_c), 
+                         -np.cos(eta / 2) * np.cos(epsilon_c)])
+
+    return geometry.dihedral(np.array([0, 1, 0]), n, ca, c), \
+            geometry.dihedral(n, ca, c, np.array([0, 1, 0]))
+
+def calc_flat_dipeptide_for_n_ca_vector(n_ca_vector, di_pp_direction, hb_direction):
+    '''Given the n_ca vector, the direction of a dipeptide bond, the
+    direction of the hydrogen bonds, calculate the flat dipeptide after it.
+    Return the ca_c vector, c_n vector and phi, psi torsions of the 
+    flat dipeptide.
+    '''
+    # Create a frame for the dipeptide bond
+
+    x = geometry.normalize(di_pp_direction)
+    y = -geometry.normalize(hb_direction)
+    z = np.cross(x, y)
+
+    # Make a frame for the ca_c vector
+
+    n_ca_vector = geometry.normalize(n_ca_vector)
+    n_ca_x = geometry.perpendicular_vector(n_ca_vector)
+    n_ca_y = np.cross(n_ca_vector, n_ca_x)
+
+    N_CA_C_ANLGE = np.radians(111.2)
+
+    def virtual_n_ca_c_anlge(theta):
+        ca_c_vector = np.cos(np.pi - N_CA_C_ANLGE) * n_ca_vector \
+                    + np.sin(np.pi - N_CA_C_ANLGE) * np.cos(theta) * n_ca_x \
+                    + np.sin(np.pi - N_CA_C_ANLGE) * np.sin(theta) * n_ca_y 
+
+        eta = np.pi - 2 * np.absolute(np.arctan2(
+                np.dot(ca_c_vector, z), np.dot(ca_c_vector, x)))
+        
+        epsilon_c = geometry.angle(ca_c_vector, 
+                np.dot(ca_c_vector, x) * x + np.dot(ca_c_vector, z) * z)
+       
+        return calc_n_ca_c_angle_between_peptide_plan(eta, epsilon_c - np.radians(9), epsilon_c)
+
+    #for theta in range(-180, 180): ###DEBUG
+    #    print(theta, np.degrees(virtual_n_ca_c_anlge(np.radians(theta))))
+
+    # Solve the direction of the ca_c vector
+
+    theta = scipy.optimize.broyden1(lambda x : virtual_n_ca_c_anlge(x) - N_CA_C_ANLGE, 0, f_tol=0.001)
+
+    # Calculate the flat peptide torsions 
+
+    ca_c_vector = np.cos(np.pi - N_CA_C_ANLGE) * n_ca_vector \
+                + np.sin(np.pi - N_CA_C_ANLGE) * np.cos(theta) * n_ca_x \
+                + np.sin(np.pi - N_CA_C_ANLGE) * np.sin(theta) * n_ca_y \
+
+    ca_c_vector *= 1.53
+
+    eta = np.pi - 2 * np.absolute(np.arctan2(
+            np.dot(ca_c_vector, z), np.dot(ca_c_vector, x)))
+    
+    epsilon_c = geometry.angle(ca_c_vector, 
+            np.dot(ca_c_vector, x) * x + np.dot(ca_c_vector, z) * z)
+    
+    phi, psi = get_flat_dipeptide_torsions(epsilon_c - np.radians(9), eta)
+
+    # Calculate the c_n vector
+
+    n = geometry.cartesian_coord_from_internal_coord(y, np.zeros(3), ca_c_vector,
+            1.32, np.radians(114), np.pi)
+
+    c_n_vector = n - ca_c_vector
+    
+    #print(ca_c_vector, n) ###DEBUG
+    #print(np.degrees(phi), np.degrees(psi)) ###DEBUG
+
+    return ca_c_vector, c_n_vector, phi, psi
+
+def build_beta_strand_from_dipeptide_directions(di_pp_directions):
+    '''Build a beta strand given a list of dipeptide directions.
+    Elements in di_pp_directions have format (di_pp_direction, hb_direction).
+    '''
+
+    # Build a flat strand
+
+    strand = build_ideal_flat_beta_strand(len(di_pp_directions) * 2 + 1)
+
+    # Align the strand to the first di_pp_direction
+    
+    x = geometry.normalize(di_pp_directions[0][0])
+    y = -geometry.normalize(di_pp_directions[0][1])
+    z = np.cross(x, y) 
+    M = np.transpose(np.array([x, y, z]))
+
+    strand = basic.transform_residue_list(strand, M, np.zeros(3)) 
+
+    # Set the torsions for the residues
+
+    for i in range(1, len(di_pp_directions)):
+        res_id = 2 * i
+
+        ca = strand[res_id]['ca']
+        n = strand[res_id]['n']
+       
+        ca_c_vector, c_n_vector, phi2, psi2 = \
+            calc_flat_dipeptide_for_n_ca_vector(ca - n, *di_pp_directions[i])
+
+        phi = geometry.dihedral(strand[res_id - 1]['c'], n, ca, ca + ca_c_vector)
+        psi = geometry.dihedral(n, ca, ca + ca_c_vector, ca + ca_c_vector + c_n_vector)
+
+        basic.change_torsions(strand, res_id, phi, psi)
+        basic.change_torsions(strand, res_id + 1, phi2, psi2)
+
+    return strand

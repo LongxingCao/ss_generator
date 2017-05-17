@@ -13,6 +13,7 @@ setup(
     ],
     install_requires=[
         'numpy',
+        'scipy',
         'pytest',
     ],
     entry_points={
