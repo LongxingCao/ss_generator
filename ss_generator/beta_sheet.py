@@ -137,18 +137,54 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
 
     strand = build_ideal_flat_beta_strand(len(di_pp_directions) * 2 + 1)
 
-    # Align the strand to the first di_pp_direction
-    
-    x = geometry.normalize(di_pp_directions[0][0])
-    y = -geometry.normalize(di_pp_directions[0][1])
-    z = np.cross(x, y) 
-    M = np.transpose(np.array([x, y, z]))
+    # Set all the torsions to the peak of the beta sheet ramachanran distribution
 
-    strand = basic.transform_residue_list(strand, M, np.zeros(3)) 
+    for i in range(len(strand)):
+        basic.change_torsions(strand, i, np.radians(-120), np.radians(126))
+
+    # Functions to create dipeptide frames
+
+    def frame_for_dipp_direction(di_pp_id):
+        x = geometry.normalize(di_pp_directions[di_pp_id][0])
+        y = geometry.normalize(di_pp_directions[di_pp_id][1])
+        z = np.cross(x, y)
+        return np.array([x, y, z])
+
+    def frame_for_current_dipp(res_id):
+        dipp_direction = get_dipeptide_bond_direction(*strand[res_id - 1:res_id + 2])
+        x = dipp_direction[0]
+        y = dipp_direction[1]
+        z = np.cross(x, y)
+        return np.array([x, y, z])
+
+    def transform_matrix(di_pp_id, res_id):
+        '''Get matrix that transforms a dipeptide bond to a
+        given direction.
+        '''
+        return np.dot(np.transpose(frame_for_dipp_direction(di_pp_id)), 
+            frame_for_current_dipp(res_id))
+
+    # Align the strand to the first di_pp_direction
+
+    strand = basic.transform_residue_list(strand, transform_matrix(0, 1), np.zeros(3)) 
 
     # Set the torsions for the residues
 
     for i in range(1, len(di_pp_directions)):
-        res_id = 2 * i
+        res_id = 2 * i + 1
+        
+        # Get the Euclidean transformation
+
+        M = transform_matrix(i, res_id)
+        t = strand[res_id - 1]['ca'] - np.dot(M, strand[res_id - 1]['ca'])
+        
+        # Transform the rest of the strand
+
+        for atom in strand[res_id - 1].keys():
+            if atom not in ['h', 'n']:
+                strand[res_id - 1][atom] = np.dot(M, strand[res_id - 1][atom]) + t
+
+        for j in range(res_id, len(strand)):
+            strand[j] = basic.transform_residue(strand[j], M, t)
 
     return strand

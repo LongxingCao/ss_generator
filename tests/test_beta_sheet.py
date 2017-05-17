@@ -33,9 +33,9 @@ def test_build_beta_sheet():
 
 
     axis = np.array([0, 0, 1])
-    theta = np.radians(0)
+    theta = np.radians(10)
     M = ssg.geometry.rotation_matrix_from_axis_and_angle(axis, theta)
-    pitch_angle = np.radians(45)
+    pitch_angle = np.radians(60)
     seed = (np.array([np.sin(pitch_angle), 0, np.cos(pitch_angle)]),
             np.array([np.cos(pitch_angle), 0, -np.sin(pitch_angle)]))
     di_pp_directions = [seed]
