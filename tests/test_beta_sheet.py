@@ -32,20 +32,6 @@ def test_build_beta_sheet():
     ssg.IO.save_residue_list(res_list, "perturbed_sheet.pdb")
 
 
-    axis = np.array([0, 0, 1])
-    theta = np.radians(10)
-    M = ssg.geometry.rotation_matrix_from_axis_and_angle(axis, theta)
-    pitch_angle = np.radians(60)
-    seed = (np.array([np.sin(pitch_angle), 0, np.cos(pitch_angle)]),
-            np.array([np.cos(pitch_angle), 0, -np.sin(pitch_angle)]))
-    di_pp_directions = [seed]
-
-    for i in range(10):
-        v1 = np.dot(M, di_pp_directions[-1][0])
-        v2 = np.dot(M, di_pp_directions[-1][1])
-        di_pp_directions.append((v1, v2))
-
-
-    res_list = ssg.beta_sheet.build_beta_strand_from_dipeptide_directions(di_pp_directions)
-    ssg.IO.save_residue_list(res_list, "dipp_sheet.pdb")
+    res_list = ssg.beta_sheet.build_beta_barrel('parallel', 12, 20, np.radians(20))
+    ssg.IO.save_residue_list(res_list, "beta_barrel.pdb")
 

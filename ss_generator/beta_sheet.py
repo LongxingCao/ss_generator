@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import scipy.optimize
 
 from . import geometry
 from . import basic
@@ -188,3 +189,63 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
             strand[j] = basic.transform_residue(strand[j], M, t)
 
     return strand
+
+def build_beta_barrel(sheet_type, num_strand, strand_length, pitch_angle):
+    '''Build a beta barrel.
+    The pitch_angle should be in the range of [-pi / 2, pi / 2]. Strands
+    are right handed if pitch_angle > 0.
+    '''
+    # Set some basic parameters
+    
+    DI_PEPTIDE_LENGTH = 6.7
+    PARALLEL_D_INTER = 4.84
+    ANTIPARALLEL_D_INTER_POS = 5.24
+    ANTIPARALLEL_D_INTER_NEG = 4.50
+    
+    # Calculate the screw paramters
+
+    axis = np.array([0, 0, 1])
+    theta_inter = 2 * np.pi * np.cos(pitch_angle) ** 2 / num_strand
+    R = PARALLEL_D_INTER * np.cos(pitch_angle) / theta_inter
+    
+    f = lambda x : (R * x / np.tan(pitch_angle)) ** 2 + (2 * R * np.sin(x / 2)) ** 2\
+                    - DI_PEPTIDE_LENGTH ** 2
+    
+    theta = np.sign(pitch_angle) * np.absolute(scipy.optimize.broyden1(f, np.pi))
+
+    tilt_angle = np.arctan2(2 * R * np.sin(theta / 2), R * theta / np.tan(pitch_angle)) 
+
+    # Get dipeptide directions one strand
+
+    M = geometry.rotation_matrix_from_axis_and_angle(axis, theta)
+
+    di_pp_directions = [ (np.array([np.sin(tilt_angle), 0, np.cos(tilt_angle)]),
+                        np.array([np.cos(tilt_angle), 0, -np.sin(tilt_angle)]))]
+
+    for i in range(1, strand_length // 2): 
+        di_pp_directions.append((np.dot(M, di_pp_directions[-1][0]),
+                                 np.dot(M, di_pp_directions[-1][1])))
+
+    # Generate a reference strand
+
+    strand = build_beta_strand_from_dipeptide_directions(di_pp_directions)
+
+    strand = basic.transform_residue_list(strand, np.identity(3),
+                np.array([0, -R * np.cos(theta / 2), 0]) 
+                - (strand[0]['ca'] + strand[2]['ca']) / 2)
+
+    # Generate the rest of the strands by rotation
+
+    sheet = [strand[:strand_length]]
+
+    if sheet_type == 'parallel':
+        pitch_inter = -np.sin(pitch_angle) * PARALLEL_D_INTER * 2 * np.pi / theta_inter 
+        M_inter, t_inter = geometry.get_screw_transformation(axis, 
+                            theta_inter, pitch_inter, np.zeros(3))
+
+        for i in range(1, num_strand):
+            sheet.append(basic.transform_residue_list(sheet[-1], M_inter, t_inter))
+   
+    #TODO: Implement antiparallel beta barrel generation
+
+    return sheet
