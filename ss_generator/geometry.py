@@ -195,3 +195,20 @@ def get_superimpose_transformation(P1, P2):
 
     return M, com2 - np.dot(M, com1)
 
+def point_line_distance(p, l_p, l_v):
+    '''Calculate the distance between a point and a line defined
+    by a point and a direction vector.
+    '''
+    l_v = normalize(l_v)
+    u = p - l_p
+    return np.linalg.norm(u - np.dot(u, l_v) * l_v)
+
+def point_segment_distance(p, e1, e2):
+    '''Calculate the distance between a point and a segment defined
+    by two endpoints.
+    '''
+    if 0 < np.dot(p - e1, e2 - e1) < np.dot(e2 - e1, e2 - e1):
+        return point_line_distance(p, e1, e2 - e1)
+
+    return min(np.linalg.norm(p - e1), np.linalg.norm(p - e2))
+

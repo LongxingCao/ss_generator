@@ -35,3 +35,11 @@ def test_build_beta_sheet():
     res_list = ssg.beta_sheet.build_beta_barrel('parallel', 12, 20, np.radians(20))
     ssg.IO.save_residue_list(res_list, "beta_barrel.pdb")
 
+def test_beta_sheet_skeleton():
+    print("test beta sheet skeleton.")
+
+    topology = [(3, 10), (3, 12), (1, 12), (5, 9)]
+    creases = []
+
+    skeleton = ssg.BetaSheetSkeleton(topology, creases)
+    print(skeleton.get_skeleton_boundary())
