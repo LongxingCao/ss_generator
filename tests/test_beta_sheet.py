@@ -38,8 +38,12 @@ def test_build_beta_sheet():
 def test_beta_sheet_skeleton():
     print("test beta sheet skeleton.")
 
-    topology = [(3, 10), (3, 12), (1, 12), (5, 9)]
-    creases = []
+    topology = [(3, 10), (3, 12), (4, 12), (5, 9)]
+    creases = [(np.array([5, 0]), np.array([6.5, 3])),
+                (np.array([3.5, 0]), np.array([3.5, 1]))]
 
     skeleton = ssg.BetaSheetSkeleton(topology, creases)
-    print(skeleton.get_skeleton_boundary())
+    
+    #print(skeleton.get_skeleton_boundary())
+    #print(skeleton.split_boundary_by_crease(creases[0]))
+    print(skeleton.point_on_lower_left(np.array([4.5, 1]), creases[0]))

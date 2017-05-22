@@ -7,14 +7,19 @@ def f_equal(f1, f2, cut_off=0.001):
     '''Return true if two float values are equal.'''
     return np.absolute(f1 - f2) < cut_off
 
-class Face:
-    '''A face on a beta sheet skeleton.'''
-    def __init__(self, boundary):
-        '''Initialize a Face with a list of segments
-        in counter cyclic order which make the boundary 
-        of the face.
-        '''
-        self.boundary = boundary
+def angle_2d(p1, p2, p3):
+    '''Return the angle rotating the vector p2p1 to p2p3.
+    The points are 2 dimensional.
+    '''
+    v1 = geometry.normalize(np.array([p1[0] - p2[0], p1[1] - p2[1], 0]))
+    v2 = geometry.normalize(np.array([p3[0] - p2[0], p3[1] - p2[1], 0]))
+
+    z = np.array([0, 0, 1])
+
+    s = np.dot(np.cross(v1, v2), z)
+    c = np.dot(v1, v2)
+
+    return np.arctan2(s, c)
 
 class BetaSheetSkeleton:
     '''A Skeleton for a beta sheet.'''
@@ -27,8 +32,11 @@ class BetaSheetSkeleton:
         on the boundary of the skeleton.
         '''
         self.topology = topology
-        if self.valid_topology():
+        if not self.valid_topology():
             raise Exception("Invalid topology!")
+
+        self.boundary = self.get_skeleton_boundary()
+        self.low_left_corner = self.strand_end_points(0)[0] 
 
         self.creases = creases
 
@@ -49,7 +57,7 @@ class BetaSheetSkeleton:
         for i in range(n):
             neighbors = []
             if i > 0: neighbors.append(i - 1)
-            if i < n: neighbors.append(i + 1)
+            if i < n - 1: neighbors.append(i + 1)
 
             valid_left = False
             valid_right = False
@@ -118,6 +126,91 @@ class BetaSheetSkeleton:
 
         return boundary
 
-    def init_face_tree(self):
-        '''Initialize the face tree of a skeleton.'''
-        self.faces = []
+    def find_point_on_boundary(self, point):
+        '''Find a point on the boundary.
+        Return the index of the edge.
+        '''
+        for i in range(len(self.boundary)):
+            if f_equal(0, geometry.point_segment_distance(point,
+                self.boundary[i][0], self.boundary[i][1])):
+                return i
+
+    def split_boundary_by_crease(self, crease):
+        '''Return two splited boundaries cut by a crease.
+        The first splited boundary contains the lower left
+        corner.
+        '''
+        # Find the indices of edges to be splited
+
+        e0 = self.find_point_on_boundary(crease[0])
+        e1 = self.find_point_on_boundary(crease[1])
+
+        # Get the splited edges
+
+        se00 = (self.boundary[e0][0], crease[0])
+        se01 = (crease[0], self.boundary[e0][1])
+        se10 = (self.boundary[e1][0], crease[1])
+        se11 = (crease[1], self.boundary[e1][1])
+
+        # Get the first splited boundary
+
+        sb1 = [] if f_equal(0, np.linalg.norm(se01[1] - se01[0])) else [se01]
+
+        i = (e0 + 1) % len(self.boundary)
+
+        while i != e1:
+            sb1.append(self.boundary[i])
+            i = (i + 1) % len(self.boundary)
+
+        if not f_equal(0, np.linalg.norm(se10[1] - se10[0])):
+            sb1.append(se10)
+
+        sb1.append((crease[1], crease[0]))
+
+        # Get the second splited boundary
+
+        sb2 = [] if f_equal(0, np.linalg.norm(se11[1] - se11[0])) else [se11]
+
+        i = (e1 + 1) % len(self.boundary)
+
+        while i != e0:
+            sb2.append(self.boundary[i])
+            i = (i + 1) % len(self.boundary)
+
+        if not f_equal(0, np.linalg.norm(se00[1] - se00[0])):
+            sb2.append(se00)
+
+        sb2.append(crease)
+
+        # Find out the order of sb1 and sb2
+
+        if e0 < e1:
+            return sb2, sb1
+        else:
+            return sb1, sb2
+
+    def point_on_lower_left(self, point, crease):
+        '''Return true if a point is on the lower left
+        side of a crease. 
+        '''
+        # Get the lower left part of the splited boundary
+
+        sb_ll = self.split_boundary_by_crease(crease)[0]
+
+        # Test if the point is on the boundary
+
+        for edge in sb_ll:
+            if f_equal(0, geometry.point_segment_distance(point, *edge)):
+                return True
+
+        # Test if the point is inside the lower left boundary
+
+        total_angle = 0
+
+        for edge in sb_ll:
+            total_angle += angle_2d(edge[0], point, edge[1])
+
+        if np.absolute(total_angle) > np.pi:
+            return True
+
+        return False
