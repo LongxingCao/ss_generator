@@ -21,6 +21,25 @@ def angle_2d(p1, p2, p3):
 
     return np.arctan2(s, c)
 
+def to_3d(v):
+    '''Change a 2D vector to a 3D vector.'''
+    return np.array([v[0], v[1], 0])
+
+class Crease3D:
+    '''A 3D crease with some affiliating data'''
+    
+    def __init__(self, crease):
+        '''Initalize the 3D crease with a 2D crease.'''
+        self.crease2d = crease
+        self.anchor = to_3d(crease[0])
+        self.axis = geometry.normalize(to_3d(crease[1] - crease[0]))
+        self.angle = crease[2]
+        self.lower_left_crease_ids = []
+        self.upper_right_crease_ids = []
+        self.lower_left_point_ids = []
+        self.upper_right_point_ids = []
+
+
 class BetaSheetSkeleton:
     '''A Skeleton for a beta sheet.'''
     
@@ -29,7 +48,7 @@ class BetaSheetSkeleton:
         a list of creases of the skeleton. A topology is a list
         of pairs. Each pair specifies the starting point and the
         ending point of a strand. A crease is a pair of 2D points 
-        on the boundary of the skeleton.
+        on the boundary of the skeleton and a bending angle.
         '''
         self.topology = topology
         if not self.valid_topology():
@@ -39,6 +58,7 @@ class BetaSheetSkeleton:
         self.low_left_corner = self.strand_end_points(0)[0] 
 
         self.creases = creases
+        self.crease3ds = [Crease3D(c) for c in creases]
 
     def strand_end_points(self, strand_id):
         '''Return the left and right end points of
@@ -180,7 +200,7 @@ class BetaSheetSkeleton:
         if not f_equal(0, np.linalg.norm(se00[1] - se00[0])):
             sb2.append(se00)
 
-        sb2.append(crease)
+        sb2.append((crease[0], crease[1]))
 
         # Find out the order of sb1 and sb2
 
@@ -214,3 +234,10 @@ class BetaSheetSkeleton:
             return True
 
         return False
+
+    def crease_on_lower_left(self, crease1, crease2):
+        '''Return true if the crease1 is on the lower left
+        side of the crease2.
+        '''
+        return self.point_on_lower_left(crease1[0], crease2) \
+                and self.point_on_lower_left(crease1[1], crease2)
