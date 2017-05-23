@@ -78,13 +78,17 @@ class BetaSheetSkeleton:
         self.boundary = self.get_skeleton_boundary()
         self.low_left_corner = self.strand_end_points(0)[0] 
 
-        # Initialize the 3D strands
+        # Initialize the 3D strands and HB directions
 
         self.strand3ds = []
+        self.hb_directions = []
         
         for i in range(len(topology)):
             self.strand3ds.append([self.get_3d_point(p2) for p2
                 in self.strand_points(i)])
+
+            self.hb_directions.append( [np.array([0, 1 
+                if topology[i][2] else -1, 0])] * len(self.strand3ds[-1]) )
 
         self.creases = creases
         self.crease3ds = [Crease3D(c, self.get_3d_point) for c in creases]
@@ -358,9 +362,9 @@ class BetaSheetSkeleton:
 
                 self.crease3ds[i].transform(M, t)
 
-            # Transform points
+            # Transform points and their HB directions
 
             for i, j in c3d.upper_right_point_ids:
 
                 self.strand3ds[i][j] = np.dot(M, self.strand3ds[i][j]) + t
-
+                self.hb_directions[i][j] = np.dot(M, self.hb_directions[i][j])
