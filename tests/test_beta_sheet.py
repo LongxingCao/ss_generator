@@ -46,4 +46,5 @@ def test_beta_sheet_skeleton():
     
     #print(skeleton.get_skeleton_boundary())
     #print(skeleton.split_boundary_by_crease(creases[0]))
-    print(skeleton.point_on_lower_left(np.array([4.5, 1]), creases[0]))
+    #print(skeleton.point_on_lower_left(np.array([4.5, 1]), creases[0]))
+    print(skeleton.crease3ds[0].lower_left_point_ids)

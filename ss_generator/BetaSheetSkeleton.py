@@ -57,8 +57,20 @@ class BetaSheetSkeleton:
         self.boundary = self.get_skeleton_boundary()
         self.low_left_corner = self.strand_end_points(0)[0] 
 
+        # Initialize the 3D strands
+
+        self.strand3ds = []
+        for i in range(len(topology)):
+            s = []
+            
+            for j in range(topology[i][0], topology[i][1] + 1):
+                s.append(np.array([j, i, 0]))
+            
+            self.strand3ds.append(s)
+
         self.creases = creases
         self.crease3ds = [Crease3D(c) for c in creases]
+        self.init_crease3d_data()
 
     def strand_end_points(self, strand_id):
         '''Return the left and right end points of
@@ -70,7 +82,7 @@ class BetaSheetSkeleton:
         return (p0, p1) if p0[0] < p1[0] else (p1, p0)
 
     def valid_topology(self):
-        '''Return true if the topolgy is valid.'''
+        '''Return true if the topology is valid.'''
         n = len(self.topology)
         end_points = [self.strand_end_points(i) for i in range(n)]
 
@@ -241,3 +253,31 @@ class BetaSheetSkeleton:
         '''
         return self.point_on_lower_left(crease1[0], crease2) \
                 and self.point_on_lower_left(crease1[1], crease2)
+
+    def init_crease3d_data(self):
+        '''Initialize datas for the crease3ds'''
+
+        for i, c3d in enumerate(self.crease3ds):
+
+            # Initialize the relationships between creases
+
+            for j, c3d2 in enumerate(self.crease3ds):
+                if i == j:
+                    continue
+                elif self.crease_on_lower_left(c3d2.crease2d, c3d.crease2d):
+                    c3d.lower_left_crease_ids.append(j)
+                else:
+                    c3d.upper_right_crease_ids.append(j)
+
+            # Initialize the relationships between creases and points
+
+            for j, strand in enumerate(self.topology):
+                for k in range(strand[0], strand[1] + 1):
+                    
+                    if self.point_on_lower_left(np.array([k, j]), c3d.crease2d):
+                        c3d.lower_left_point_ids.append((j, k - strand[0]))
+                    else:
+                        c3d.upper_right_point_ids.append((j, k - strand[0]))
+
+
+
