@@ -28,11 +28,13 @@ def to_3d(v):
 class Crease3D:
     '''A 3D crease with some affiliating data'''
     
-    def __init__(self, crease):
-        '''Initalize the 3D crease with a 2D crease.'''
+    def __init__(self, crease, f_3d):
+        '''Initalize the 3D crease with a 2D crease and
+        a function that transforms a 2d point to a 3d point.
+        '''
         self.crease2d = crease
-        self.anchor = to_3d(crease[0])
-        self.axis = geometry.normalize(to_3d(crease[1] - crease[0]))
+        self.anchor = f_3d(crease[0])
+        self.axis = geometry.normalize(f_3d(crease[1]) - f_3d(crease[0]))
         self.angle = crease[2]
         self.lower_left_crease_ids = []
         self.upper_right_crease_ids = []
@@ -53,6 +55,13 @@ class Crease3D:
 class BetaSheetSkeleton:
     '''A Skeleton for a beta sheet.'''
     
+    # Set some basic parameters
+    
+    DI_PEPTIDE_LENGTH = 6.7
+    PARALLEL_D_INTER = 4.84
+    ANTIPARALLEL_D_INTER_POS = 5.24
+    ANTIPARALLEL_D_INTER_NEG = 4.50
+
     def __init__(self, topology, creases):
         '''Initialize a BetaSheetSkeleton with the topology and
         a list of creases of the skeleton. A topology is a list
@@ -74,11 +83,11 @@ class BetaSheetSkeleton:
         self.strand3ds = []
         
         for i in range(len(topology)):
-            self.strand3ds.append([np.array([p2[0], p2[1], 0]) for p2
+            self.strand3ds.append([self.get_3d_point(p2) for p2
                 in self.strand_points(i)])
 
         self.creases = creases
-        self.crease3ds = [Crease3D(c) for c in creases]
+        self.crease3ds = [Crease3D(c, self.get_3d_point) for c in creases]
         self.init_crease3d_data()
 
         # Fold the skeleton
@@ -96,7 +105,6 @@ class BetaSheetSkeleton:
         else:
             return [np.array([j, strand_id]) for j in 
                     range(strand[0], strand[1] - 1, -1)]
-
         
 
     def strand_end_points(self, strand_id):
@@ -280,6 +288,39 @@ class BetaSheetSkeleton:
         '''
         return self.point_on_lower_left(crease1[0], crease2) \
                 and self.point_on_lower_left(crease1[1], crease2)
+
+    def get_3d_point(self, p2):
+        '''Get a 3D point from a 2D point on the skeleton.'''
+        x = p2[0] * BetaSheetSkeleton.DI_PEPTIDE_LENGTH
+
+        # Calculate the y coordinate by cut the y axis into
+        # strips with different scale factors
+
+        def y_scale_factor(level):
+            '''Get the y axis scale factor.'''
+            if level < 0 or level + 1 >= len(self.topology):
+                return BetaSheetSkeleton.PARALLEL_D_INTER
+
+            elif self.topology[level][2] == self.topology[level + 1][2]:
+                return BetaSheetSkeleton.PARALLEL_D_INTER
+
+            elif self.topology[level][2]:
+                return BetaSheetSkeleton.ANTIPARALLEL_D_INTER_POS
+
+            else:
+                return BetaSheetSkeleton.ANTIPARALLEL_D_INTER_NEG
+        
+        y = 0
+
+        i = 0
+        while i + 1 < p2[1]:
+            
+            y += y_scale_factor(i)
+            i += 1
+       
+        y += y_scale_factor(i) * (p2[1] - i)
+
+        return np.array([x, y, 0])
 
     def init_crease3d_data(self):
         '''Initialize datas for the crease3ds'''
