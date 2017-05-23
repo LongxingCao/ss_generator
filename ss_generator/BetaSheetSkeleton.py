@@ -72,13 +72,10 @@ class BetaSheetSkeleton:
         # Initialize the 3D strands
 
         self.strand3ds = []
+        
         for i in range(len(topology)):
-            s = []
-            
-            for j in range(topology[i][0], topology[i][1] + 1):
-                s.append(np.array([j, i, 0]))
-            
-            self.strand3ds.append(s)
+            self.strand3ds.append([np.array([p2[0], p2[1], 0]) for p2
+                in self.strand_points(i)])
 
         self.creases = creases
         self.crease3ds = [Crease3D(c) for c in creases]
@@ -87,6 +84,20 @@ class BetaSheetSkeleton:
         # Fold the skeleton
 
         self.fold()
+
+    def strand_points(self, strand_id):
+        '''Return the points on a strand in 2D'''
+        strand = self.topology[strand_id]
+
+        if strand[1] > strand[0]:
+            return [np.array([j, strand_id]) for j in 
+                    range(strand[0], strand[1] + 1)]
+        
+        else:
+            return [np.array([j, strand_id]) for j in 
+                    range(strand[0], strand[1] - 1, -1)]
+
+        
 
     def strand_end_points(self, strand_id):
         '''Return the left and right end points of
@@ -288,12 +299,12 @@ class BetaSheetSkeleton:
             # Initialize the relationships between creases and points
 
             for j, strand in enumerate(self.topology):
-                for k in range(strand[0], strand[1] + 1):
+                for k, p2 in enumerate(self.strand_points(j)):
                     
-                    if self.point_on_lower_left(np.array([k, j]), c3d.crease2d):
-                        c3d.lower_left_point_ids.append((j, k - strand[0]))
+                    if self.point_on_lower_left(p2, c3d.crease2d):
+                        c3d.lower_left_point_ids.append((j, k))
                     else:
-                        c3d.upper_right_point_ids.append((j, k - strand[0]))
+                        c3d.upper_right_point_ids.append((j, k))
 
     def fold(self):
         '''Fold the skeleton along the creases.'''
