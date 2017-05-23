@@ -40,7 +40,7 @@ def test_beta_sheet_skeleton():
 
     topology = [(3, 10, True), (12, 3, False), (4, 12, True), (5, 9, True)]
     creases = [(np.array([5, 0]), np.array([6.5, 3]), np.radians(30)),
-                (np.array([3.5, 0]), np.array([3.5, 1]), np.radians(-50))]
+                (np.array([3.5, 0]), np.array([3.5, 1]), np.radians(10))]
 
     skeleton = ssg.BetaSheetSkeleton(topology, creases)
     
@@ -51,3 +51,6 @@ def test_beta_sheet_skeleton():
     
     ca_list = skeleton.strand3ds
     ssg.IO.save_ca_list(ca_list, "beta_sheet_skeleton.pdb")
+
+    res_list = skeleton.thread_bb()
+    ssg.IO.save_residue_list(res_list, "beta_sheet_from_skeleton.pdb")

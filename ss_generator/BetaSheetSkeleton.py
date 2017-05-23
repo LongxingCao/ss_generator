@@ -1,6 +1,8 @@
 import numpy as np
 
 from . import geometry
+from . import basic
+from . import beta_sheet
 
 
 def f_equal(f1, f2, cut_off=0.001):
@@ -368,3 +370,45 @@ class BetaSheetSkeleton:
 
                 self.strand3ds[i][j] = np.dot(M, self.strand3ds[i][j]) + t
                 self.hb_directions[i][j] = np.dot(M, self.hb_directions[i][j])
+
+    def get_dipeptide_bond_directions(self):
+        '''Return a list of dipeptide bond directions
+        for each strand.
+        '''
+        all_dipp_directions = []
+
+        for i, strand in enumerate(self.strand3ds):
+            dipp_directions = []
+
+            for j in range(len(strand) - 1):
+                
+                d0 = geometry.normalize(strand[j + 1] - strand[j])
+                
+                # The HB direction of the dipeptide bond is calculated from
+                # the two flanking HB directions
+
+                d1 = -(self.hb_directions[i][j] + self.hb_directions[i][j + 1]) / 2
+                
+                dipp_directions.append((d0, geometry.normalize(d1 - np.dot(d1, d0) * d0)))
+
+            all_dipp_directions.append(dipp_directions)
+
+        return all_dipp_directions
+
+    def thread_bb(self):
+        '''Thread a backbone onto the skeleton.
+        Return a residue list of all strands.
+        '''
+        sheet = []
+        all_dipp_directions = self.get_dipeptide_bond_directions()
+
+        for i, strand in enumerate(self.strand3ds):
+            strand_bb = beta_sheet.build_beta_strand_from_dipeptide_directions(
+                            all_dipp_directions[i])
+
+            com1 = np.mean([strand_bb[j]['ca'] for j in range(0, len(strand_bb), 2)], axis=0)
+            com2 = np.mean(strand, axis=0)
+
+            sheet.append(basic.transform_residue_list(strand_bb, np.identity(3), com2 - com1))
+
+        return sheet
