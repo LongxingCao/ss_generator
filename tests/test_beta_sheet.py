@@ -38,7 +38,7 @@ def test_build_beta_sheet():
 def test_beta_sheet_skeleton():
     print("test beta sheet skeleton.")
 
-    topology = [(3, 10), (3, 12), (4, 12), (5, 9)]
+    topology = [(3, 10, True), (3, 12, True), (4, 12, True), (5, 9, True)]
     creases = [(np.array([5, 0]), np.array([6.5, 3]), np.radians(30)),
                 (np.array([3.5, 0]), np.array([3.5, 1]), np.radians(-50))]
 

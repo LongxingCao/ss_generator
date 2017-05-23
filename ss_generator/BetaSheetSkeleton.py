@@ -56,8 +56,10 @@ class BetaSheetSkeleton:
     def __init__(self, topology, creases):
         '''Initialize a BetaSheetSkeleton with the topology and
         a list of creases of the skeleton. A topology is a list
-        of pairs. Each pair specifies the starting point and the
-        ending point of a strand. A crease is a pair of 2D points 
+        of tuples of three values. The first two values specify
+        the starting point and the ending point of a strand. The
+        third values is a boolean that tells if the hydrogen bonding
+        atoms are upward facing. A crease is a tuple of two 2D points 
         on the boundary of the skeleton and a bending angle.
         '''
         self.topology = topology
