@@ -20,6 +20,16 @@ def transform_residue_list(res_list, M, t):
     '''
     return [transform_residue(res, M, t) for res in res_list]
 
+def get_phi(strand, res_id):
+    '''Get the phi torsions of a residue.'''
+    return geometry.dihedral(strand[res_id - 1]['c'], strand[res_id]['n'],
+            strand[res_id]['ca'], strand[res_id]['c'])
+
+def get_psi(strand, res_id):
+    '''Get the psi torsions of a residue.'''
+    return geometry.dihedral(strand[res_id]['n'], strand[res_id]['ca'],
+            strand[res_id]['c'], strand[res_id + 1]['n'])
+
 def change_torsions(strand, res_id, phi, psi):
     '''Change the phi, psi angles of a residue in
     a strand. The input torsions should be in radians.

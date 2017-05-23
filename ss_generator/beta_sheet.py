@@ -7,6 +7,12 @@ from . import geometry
 from . import basic
 
 
+def random_beta_torsion():
+    '''Return a random pair of phi/psi torsions for a beta strand.'''
+    #TODO: Implement this function
+    return np.radians(-138.9), np.radians(134.6)
+    #return np.radians(-120), np.radians(126)
+
 def build_ideal_flat_beta_strand(length):
     '''Build an ideal flat beta strand.
     The sheet plane is the x, y plane and the direction 
@@ -130,6 +136,14 @@ def get_dipeptide_bond_direction(res1, res2, res3):
 
     return (dipeptide_bond_direction, hb_direction)
 
+def frame_for_dipp(res1, res2, res3):
+    '''Return a frame for a dipeptide bond defined by 3 residues.'''
+    dipp_direction = get_dipeptide_bond_direction(res1, res2, res3)
+    x = dipp_direction[0]
+    y = dipp_direction[1]
+    z = np.cross(x, y)
+    return np.array([x, y, z])
+
 def build_beta_strand_from_dipeptide_directions(di_pp_directions):
     '''Build a beta strand given a list of dipeptide bond directions and 
     peptide to dipeptide bond transformations.
@@ -151,19 +165,12 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
         z = np.cross(x, y)
         return np.array([x, y, z])
 
-    def frame_for_current_dipp(res_id):
-        dipp_direction = get_dipeptide_bond_direction(*strand[res_id - 1:res_id + 2])
-        x = dipp_direction[0]
-        y = dipp_direction[1]
-        z = np.cross(x, y)
-        return np.array([x, y, z])
-
     def transform_matrix(di_pp_id, res_id):
         '''Get matrix that transforms a dipeptide bond to a
         given direction.
         '''
         return np.dot(np.transpose(frame_for_dipp_direction(di_pp_id)), 
-            frame_for_current_dipp(res_id))
+                frame_for_dipp(*strand[res_id - 1:res_id + 2]))
 
     # Align the strand to the first di_pp_direction
 
@@ -189,6 +196,106 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
             strand[j] = basic.transform_residue(strand[j], M, t)
 
     return strand
+
+def relax_bond_angles(strand, num_positions=10, num_trials=10):
+    '''Relax the bond angles in a strand built from the 
+    build_beta_strand_from_dipeptide_directions() function.
+    Do the relaxation by minimizing a strain function.
+    '''
+    def strain_function(angle1, angle2):
+        ideal_angle = np.radians(111.2)
+        return (angle1 - ideal_angle) ** 2 + (angle2 - ideal_angle) ** 2
+
+    def get_strain(position):
+        '''Get the strain at a given position.'''
+        angle1 = geometry.angle(strand[2 * position]['n'] - strand[2 * position]['ca'], 
+                                strand[2 * position]['c'] - strand[2 * position]['ca'])
+        angle2 = geometry.angle(strand[2 *position + 2]['n'] - strand[2 * position + 2]['ca'],
+                                strand[2 *position + 2]['c'] - strand[2 * position + 2]['ca'])
+        return strain_function(angle1, angle2)
+
+    # Make a model dipeptide to try different torsions
+    
+    model_dipp = build_ideal_flat_beta_strand(3)
+    
+    def relax_position(position):
+        '''Relax the dipeptide bond at a given position.'''
+        # Get the dipeptide frame
+
+        frame = frame_for_dipp(*strand[2 * position : 2 * position + 3])
+
+        # Get the two flanking bonds
+
+        ca_n1 = strand[2 * position]['n'] - strand[2 * position]['ca']
+        ca_c2 = strand[2 * position + 2]['c'] - strand[2 * position + 2]['ca']
+
+        # Sample torsions
+
+        best_torsions = (basic.get_phi(strand, 2 * position + 1),
+                         basic.get_psi(strand, 2 * position + 1))
+        best_strain = get_strain(position)
+
+        for i in range(num_trials):
+
+            # Change the model dipeptide to a random torsion
+
+            torsions = random_beta_torsion()
+
+            basic.change_torsions(model_dipp, 1, *torsions)
+
+            # Get the frame of the model dipeptide and frame tranformation matrix
+
+            model_frame = frame_for_dipp(*model_dipp)
+            M = np.dot(np.transpose(frame), model_frame)
+
+            # Get the vectors for bond angle calculation
+
+            ca_c1 = np.dot(M, model_dipp[0]['c'] - model_dipp[0]['ca'])
+            ca_n2 = np.dot(M, model_dipp[2]['n'] - model_dipp[2]['ca'])
+
+            # Update the best torsions
+
+            strain = strain_function(geometry.angle(ca_n1, ca_c1), geometry.angle(ca_n2, ca_c2))
+
+            if strain < best_strain:
+                best_strain = strain
+                best_torsions = torsions
+
+        # Apply the best torsions
+
+        basic.change_torsions(model_dipp, 1, *best_torsions)
+        
+        M = np.dot(np.transpose(frame), frame_for_dipp(*model_dipp))
+        t1 = strand[2 * position]['ca'] - np.dot(M, model_dipp[0]['ca'])
+        t2 = np.dot(M, model_dipp[2]['ca']) + t1 - strand[2 * position + 2]['ca']
+
+        for atom in strand[2 * position].keys():
+            if position == 0 or (atom not in ['h', 'n']):
+                strand[2 * position][atom] = np.dot(M, model_dipp[0][atom]) + t1
+
+        strand[2 * position + 1] = basic.transform_residue(model_dipp[1], M, t1)
+
+        for atom in strand[2 * position + 2].keys():
+            if 2 * position + 3 == len(strand) or (atom not in ['c', 'o']):
+                strand[2 * position + 2][atom] = np.dot(M, model_dipp[2][atom]) + t1
+            else:
+                strand[2 * position + 2][atom] += t2
+
+        for i in range(2 * position + 3, len(strand)):
+            strand[i] = basic.transform_residue(strand[i], np.identity(3), t2)
+
+    # Pick positions randomly and relax them
+
+    random_positions = np.random.randint(len(strand) // 2, size=num_positions)
+
+    #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
+    #print("Strains before relaxation:\n", strains) ###DEBUG
+
+    for p in random_positions:
+        relax_position(p)
+
+    #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
+    #print("Strains after relaxation:\n", strains) ###DEBUG
 
 def build_beta_barrel(sheet_type, num_strand, strand_length, pitch_angle):
     '''Build a beta barrel.

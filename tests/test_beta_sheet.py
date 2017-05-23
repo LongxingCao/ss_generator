@@ -54,3 +54,8 @@ def test_beta_sheet_skeleton():
 
     res_list = skeleton.thread_bb()
     ssg.IO.save_residue_list(res_list, "beta_sheet_from_skeleton.pdb")
+
+    for strand in res_list:
+        ssg.beta_sheet.relax_bond_angles(strand)
+    
+    ssg.IO.save_residue_list(res_list, "beta_sheet_relaxed.pdb")
