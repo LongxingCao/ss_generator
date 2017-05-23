@@ -39,6 +39,16 @@ class Crease3D:
         self.lower_left_point_ids = []
         self.upper_right_point_ids = []
 
+    def transform(self, M, t):
+        '''Apply a Euclidean transformation on the 3D crease.'''
+        self.anchor = np.dot(M, self.anchor) + t
+        self.axis = np.dot(M, self.axis)
+
+    def get_transformation(self):
+        '''Return the transformation defined by this crease.'''
+        return geometry.get_screw_transformation(self.axis, 
+                self.angle, 0, self.anchor)
+
 
 class BetaSheetSkeleton:
     '''A Skeleton for a beta sheet.'''
@@ -71,6 +81,10 @@ class BetaSheetSkeleton:
         self.creases = creases
         self.crease3ds = [Crease3D(c) for c in creases]
         self.init_crease3d_data()
+
+        # Fold the skeleton
+
+        self.fold()
 
     def strand_end_points(self, strand_id):
         '''Return the left and right end points of
@@ -279,5 +293,20 @@ class BetaSheetSkeleton:
                     else:
                         c3d.upper_right_point_ids.append((j, k - strand[0]))
 
+    def fold(self):
+        '''Fold the skeleton along the creases.'''
+        for c3d in self.crease3ds:
+            M, t = c3d.get_transformation()
 
+            # Transform creases
+
+            for i in c3d.upper_right_crease_ids:
+
+                self.crease3ds[i].transform(M, t)
+
+            # Transform points
+
+            for i, j in c3d.upper_right_point_ids:
+
+                self.strand3ds[i][j] = np.dot(M, self.strand3ds[i][j]) + t
 
