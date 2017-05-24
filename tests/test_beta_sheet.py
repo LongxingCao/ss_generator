@@ -38,24 +38,35 @@ def test_build_beta_sheet():
 def test_beta_sheet_skeleton():
     print("test beta sheet skeleton.")
 
-    topology = [(3, 10, True), (12, 3, False), (4, 12, True), (5, 9, True)]
-    creases = [(np.array([5, 0]), np.array([6.5, 3]), np.radians(30)),
-                (np.array([3.5, 0]), np.array([3.5, 1]), np.radians(10))]
+    #topology = [(3, 10, True), (12, 3, False), (4, 12, True), (5, 9, True)]
+    topology = [(0, 5, True), (5, 0, False), (1, 6, True), (6, 1, False),
+                (2, 7, True), (7, 2, False), (3, 8, True), (8, 3, False),
+                (4, 9, True), (9, 4, False), (5, 10, True), (10, 5, False)]
+    #creases = [(np.array([5, 0]), np.array([6.5, 3]), np.radians(30)),
+    #            (np.array([3.5, 0]), np.array([3.5, 1]), np.radians(10))]
+    #angle = 32
+    #creases = [(np.array([0, 1]), np.array([5,0]), np.radians(angle)),
+    #           (np.array([1, 2]), np.array([5,1]), np.radians(angle)),
+    #           (np.array([1, 3]), np.array([6,2]), np.radians(angle)),
+    #           (np.array([2, 4]), np.array([6,3]), np.radians(angle)),
+    #           (np.array([3, 5]), np.array([7,4]), np.radians(angle)),
+    #           (np.array([3, 6]), np.array([7,5]), np.radians(angle)),
+    #           (np.array([4, 7]), np.array([8,6]), np.radians(angle)),
+    #           (np.array([4, 8]), np.array([8,7]), np.radians(angle)),
+    #           (np.array([5, 9]), np.array([9,8]), np.radians(angle)),
+    #           (np.array([5, 10]), np.array([9,9]), np.radians(angle)),
+    #           (np.array([6, 11]), np.array([10,10]), np.radians(angle))]
+    creases = []
 
     skeleton = ssg.BetaSheetSkeleton(topology, creases)
     
     #print(skeleton.get_skeleton_boundary())
     #print(skeleton.split_boundary_by_crease(creases[0]))
     #print(skeleton.point_on_lower_left(np.array([4.5, 1]), creases[0]))
-    #print(skeleton.crease3ds[0].lower_left_point_ids)
+    #print(skeleton.crease3ds[0].lower_left_poi,t_ids)
     
     ca_list = skeleton.strand3ds
     ssg.IO.save_ca_list(ca_list, "beta_sheet_skeleton.pdb")
 
     res_list = skeleton.thread_bb()
     ssg.IO.save_residue_list(res_list, "beta_sheet_from_skeleton.pdb")
-
-    #for strand in res_list:
-    #    ssg.beta_sheet.relax_bond_angles(strand)
-    #
-    #ssg.IO.save_residue_list(res_list, "beta_sheet_relaxed.pdb")

@@ -60,9 +60,9 @@ class BetaSheetSkeleton:
     # Set some basic parameters
     
     DI_PEPTIDE_LENGTH = 6.7
-    PARALLEL_D_INTER = 4.84
-    ANTIPARALLEL_D_INTER_POS = 5.24
-    ANTIPARALLEL_D_INTER_NEG = 4.50
+    PARALLEL_D_INTER = 4.84 + 0.2
+    ANTIPARALLEL_D_INTER_POS = 5.24 + 0.2
+    ANTIPARALLEL_D_INTER_NEG = 4.50 + 0.2
 
     def __init__(self, topology, creases):
         '''Initialize a BetaSheetSkeleton with the topology and

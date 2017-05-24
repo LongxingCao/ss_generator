@@ -212,7 +212,7 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions, relax=True):
 
     return strand
 
-def relax_bond_angles(strand, num_positions=20, num_trials=20):
+def relax_bond_angles(strand, num_positions=10, num_trials=10):
     '''Relax the bond angles in a strand built from the 
     build_beta_strand_from_dipeptide_directions() function.
     Do the relaxation by minimizing a strain function.
