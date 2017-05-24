@@ -154,7 +154,7 @@ def frame_for_dipp(res1, res2, res3):
     z = np.cross(x, y)
     return np.array([x, y, z])
 
-def build_beta_strand_from_dipeptide_directions(di_pp_directions):
+def build_beta_strand_from_dipeptide_directions(di_pp_directions, relax=True):
     '''Build a beta strand given a list of dipeptide bond directions and 
     peptide to dipeptide bond transformations.
     '''
@@ -205,6 +205,11 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
         for j in range(res_id, len(strand)):
             strand[j] = basic.transform_residue(strand[j], M, t)
 
+    # Relax the strand before returning it
+
+    if relax:
+        relax_bond_angles(strand)
+
     return strand
 
 def relax_bond_angles(strand, num_positions=20, num_trials=20):
@@ -216,12 +221,15 @@ def relax_bond_angles(strand, num_positions=20, num_trials=20):
         ideal_angle = np.radians(111.2)
         return (angle1 - ideal_angle) ** 2 + (angle2 - ideal_angle) ** 2
 
+    def get_angle(res_id):
+        '''Get the angle for a given residue.'''
+        return geometry.angle(strand[res_id]['n'] - strand[res_id]['ca'],
+                              strand[res_id]['c'] - strand[res_id]['ca'])
+
     def get_strain(position):
         '''Get the strain at a given position.'''
-        angle1 = geometry.angle(strand[2 * position]['n'] - strand[2 * position]['ca'], 
-                                strand[2 * position]['c'] - strand[2 * position]['ca'])
-        angle2 = geometry.angle(strand[2 *position + 2]['n'] - strand[2 * position + 2]['ca'],
-                                strand[2 *position + 2]['c'] - strand[2 * position + 2]['ca'])
+        angle1 = get_angle(2 * position) 
+        angle2 = get_angle(2 *position + 2)
         return strain_function(angle1, angle2)
 
     # Make a model dipeptide to try different torsions
@@ -301,6 +309,8 @@ def relax_bond_angles(strand, num_positions=20, num_trials=20):
     #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
     #print("Strains before relaxation:\n", strains) ###DEBUG
     #print("Total strain before relaxation:\n", sum(strains)) ###DEBUG
+    #angles = [np.degrees(get_angle(i)) for i in range(len(strand))]###DEBUG
+    #print("Angles before relaxation:\n", angles)###DEBUG
 
     for p in random_positions:
         relax_position(p)
@@ -308,6 +318,8 @@ def relax_bond_angles(strand, num_positions=20, num_trials=20):
     #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
     #print("Strains after relaxation:\n", strains) ###DEBUG
     #print("Total strain after relaxation:\n", sum(strains)) ###DEBUG
+    #angles = [np.degrees(get_angle(i)) for i in range(len(strand))]###DEBUG
+    #print("Angles after relaxation:\n", angles)###DEBUG
 
 def build_beta_barrel(sheet_type, num_strand, strand_length, pitch_angle):
     '''Build a beta barrel.
