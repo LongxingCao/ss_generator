@@ -5,13 +5,23 @@ import scipy.optimize
 
 from . import geometry
 from . import basic
+from . import ramachandran
 
+
+# Load the beta sheet ramachandran distribution
+
+beta_sheet_ramachandran = None
+
+with open('../databases/beta_sheet_ramachandran.json', 'r') as f:
+    beta_sheet_ramachandran = json.loads(f.read())
+
+cumulative_beta_sheet_ramachandran = ramachandran.get_cumulative_probability(
+                                            beta_sheet_ramachandran)
 
 def random_beta_torsion():
     '''Return a random pair of phi/psi torsions for a beta strand.'''
-    #TODO: Implement this function
-    return np.radians(-138.9), np.radians(134.6)
-    #return np.radians(-120), np.radians(126)
+    return ramachandran.random_torsions(beta_sheet_ramachandran,
+                                cumulative_beta_sheet_ramachandran)
 
 def build_ideal_flat_beta_strand(length):
     '''Build an ideal flat beta strand.
@@ -152,7 +162,7 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
 
     strand = build_ideal_flat_beta_strand(len(di_pp_directions) * 2 + 1)
 
-    # Set all the torsions to the peak of the beta sheet ramachanran distribution
+    # Set all the torsions to the peak of the beta sheet ramachandran distribution
 
     for i in range(len(strand)):
         basic.change_torsions(strand, i, np.radians(-120), np.radians(126))
@@ -197,7 +207,7 @@ def build_beta_strand_from_dipeptide_directions(di_pp_directions):
 
     return strand
 
-def relax_bond_angles(strand, num_positions=10, num_trials=10):
+def relax_bond_angles(strand, num_positions=20, num_trials=20):
     '''Relax the bond angles in a strand built from the 
     build_beta_strand_from_dipeptide_directions() function.
     Do the relaxation by minimizing a strain function.
@@ -290,12 +300,14 @@ def relax_bond_angles(strand, num_positions=10, num_trials=10):
 
     #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
     #print("Strains before relaxation:\n", strains) ###DEBUG
+    #print("Total strain before relaxation:\n", sum(strains)) ###DEBUG
 
     for p in random_positions:
         relax_position(p)
 
     #strains = [get_strain(i) for i in range(len(strand) // 2)] ###DEBUG
     #print("Strains after relaxation:\n", strains) ###DEBUG
+    #print("Total strain after relaxation:\n", sum(strains)) ###DEBUG
 
 def build_beta_barrel(sheet_type, num_strand, strand_length, pitch_angle):
     '''Build a beta barrel.
