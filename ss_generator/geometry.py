@@ -212,3 +212,29 @@ def point_segment_distance(p, e1, e2):
 
     return min(np.linalg.norm(p - e1), np.linalg.norm(p - e2))
 
+def intersections_of_circles_on_unit_sphere(v1, v2, theta1, theta2):
+    '''Calculate intersection points of two circles on the unit
+    sphere. v1, v2 are unit vectors indicating the center of circles.
+    theta1 is the anlge between vectors on circle1 and v1, similar 
+    to theta2.
+    '''
+    v1 = normalize(v1)
+    v2 = normalize(v2)
+    v3 = normalize(np.cross(v1, v2))
+
+    alpha = angle(v1, v2)
+
+    if 0 == np.sin(alpha):
+        return None
+
+    x1 = (np.cos(theta1) - np.cos(theta2) * np.cos(alpha)) / np.sin(alpha) ** 2
+    x2 = (np.cos(theta2) - np.cos(theta1) * np.cos(alpha)) / np.sin(alpha) ** 2
+
+    p = x1 * v1 + x2 * v2
+
+    if numpy.linalg.norm(p) > 1:
+        return None
+
+    d = np.sqrt(1 - np.dot(p, p)) * v3
+
+    return p + d, p - d
