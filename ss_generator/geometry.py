@@ -232,7 +232,7 @@ def intersections_of_circles_on_unit_sphere(v1, v2, theta1, theta2):
 
     p = x1 * v1 + x2 * v2
 
-    if numpy.linalg.norm(p) > 1:
+    if np.linalg.norm(p) > 1:
         return None
 
     d = np.sqrt(1 - np.dot(p, p)) * v3
